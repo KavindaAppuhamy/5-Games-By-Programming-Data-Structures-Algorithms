@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import { FiRefreshCw } from "react-icons/fi";
+import styles from "../style/QueensCSS.module.css";
+import {useState, useEffect, useCallback, useRef, useMemo} from "react";
+import {FiRefreshCw, FiSettings, FiSun} from "react-icons/fi";
 import { GiChessQueen } from "react-icons/gi";
 import toast from "react-hot-toast";
 import Chessboard from "./Chessboard";
 import {getSolutions, submitSolution} from "../api/queensApi.js";
+import {FaCheckCircle, FaExclamationTriangle} from "react-icons/fa";
 
 const N = 16;
 const emptyBoard = () => new Array(N).fill(-1);
@@ -27,9 +29,31 @@ export default function PlayTab() {
     const [loadingSols, setLoadingSols] = useState(false);
     const [submitting,  setSubmitting]  = useState(false);
 
-    const queensPlaced = board.filter((c) => c >= 0).length;
+    const [shake, setShake] = useState(false);
+
+    const queensPlaced = useMemo(
+        () => board.filter((c) => c >= 0).length,
+        [board]
+    );
+
     const conflicts    = countConflicts(board);
     const isValid      = queensPlaced === N && conflicts === 0;
+
+    const shakeTimeout = useRef(null);
+
+    useEffect(() => {
+        if (conflicts > 0) {
+            setShake(true);
+
+            if (shakeTimeout.current) {
+                clearTimeout(shakeTimeout.current);
+            }
+
+            shakeTimeout.current = setTimeout(() => {
+                setShake(false);
+            }, 400);
+        }
+    }, [conflicts]);
 
     const fetchSolutions = useCallback(async () => {
         setLoadingSols(true);
@@ -140,33 +164,52 @@ export default function PlayTab() {
                     </button>
                     <button
                         onClick={handleClear}
-                        className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm transition cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm transition cursor-pointer"
                     >
-                        ↺ Clear
+                        <FiRefreshCw size={14} />
+                        Clear
                     </button>
+
                     <button
                         onClick={handleHint}
-                        className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm transition cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm transition cursor-pointer"
                     >
-                        💡 Hint
+                        <FiSun size={15} />
+                        Hint
                     </button>
                 </div>
 
-                {/* Status bar */}
-                <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
-          <span>
-            Queens: <span className="text-white font-medium">{queensPlaced}</span>/16
-              {conflicts > 0 && (
-                  <span className="text-red-400 ml-3">⚠ {conflicts} conflict{conflicts > 1 ? "s" : ""}</span>
-              )}
-              {isValid && (
-                  <span className="text-emerald-400 ml-3">✓ Valid — ready to submit</span>
-              )}
-          </span>
-                    <span className="hidden sm:block">Click a cell to place / remove a queen</span>
+                <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
+                    <span className="flex items-center flex-wrap gap-x-3 gap-y-1">
+                        <span>
+                            Queens: <span className="text-white font-semibold">{queensPlaced}</span>/16
+                        </span>
+
+                        {/* ⚠️ Conflict */}
+                        {conflicts > 0 && (
+                            <span className={`text-red-400 flex items-center gap-1 ${styles.shake}`}>
+                                <FaExclamationTriangle size={14} />
+                                {conflicts} conflict{conflicts > 1 ? "s" : ""}
+                            </span>
+                        )}
+
+                        {/* ✅ Valid */}
+                        {isValid && (
+                            <span className={`text-emerald-400 flex items-center gap-1 px-2 py-0.5 rounded-md ${styles.glow}`}>
+                                <FaCheckCircle size={14} />
+                                Valid — ready to submit
+                            </span>
+                        )}
+                    </span>
+                        <span className="hidden sm:block text-xs text-gray-500">
+                        Click a cell to place / remove a queen
+                    </span>
                 </div>
 
-                <Chessboard board={board} onCellClick={handleCell} />
+                <div className={`${shake ? styles.shake : ""}`}>
+                    <Chessboard board={board} onCellClick={handleCell}  />
+                </div>
+
             </div>
 
             {/* Solutions list */}
@@ -186,9 +229,18 @@ export default function PlayTab() {
                 </div>
 
                 {solutions.length === 0 ? (
-                    <div className="text-center py-10 text-gray-500">
-                        <div className="text-4xl mb-3">⚙</div>
-                        <p>No solutions loaded. Run the solver first.</p>
+                    <div className="flex flex-col items-center justify-center py-24 text-gray-500">
+                        <div className="p-4 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/30 mb-4 animate-pulse">
+                            <FiSettings size={28} className="text-white" />
+                        </div>
+
+                        <p className="text-lg font-medium text-white">
+                            No solutions loaded
+                        </p>
+
+                        <p className="text-sm mt-2 text-gray-400 text-center max-w-sm">
+                            Go to the Solver tab and run the algorithm to generate solutions.
+                        </p>
                     </div>
                 ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -196,9 +248,10 @@ export default function PlayTab() {
                             <div
                                 key={s.id}
                                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm
-                  ${s.claimed
+                                ${s.claimed
                                     ? "bg-emerald-900/20 border-emerald-700/40"
-                                    : "bg-gray-800/50 border-gray-700/40"}`}
+                                    : "bg-gray-800/50 border-gray-700/40"
+                                }`}
                             >
                                 <span className="text-xs text-gray-500 w-7 shrink-0">#{i + 1}</span>
                                 <span className="font-mono text-xs text-gray-400 flex-1 truncate">[{s.solutionKey}]</span>

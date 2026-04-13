@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiArrowLeft } from "react-icons/fi";
+import {FiArrowLeft, FiSettings} from "react-icons/fi";
 import { GiChessQueen } from "react-icons/gi";
 import SolverTab from "./components/SolverTab.jsx";
 import CompareTab from "./components/CompareTab.jsx";
 import PlayTab from "./components/PlayTab.jsx";
 import LeaderboardTab from "./components/LeaderboardTab.jsx";
+import {FaChessBoard, FaTrophy} from "react-icons/fa";
+import {BiGitCompare} from "react-icons/bi";
 
 const TABS = [
-    { id: "play",        label: "♛ Play"          },
-    { id: "leaderboard", label: "🏆 Leaderboard"  },
-    { id: "solver",      label: "⚙ Solver"       },
-    { id: "compare",     label: "📊 Compare"      },
+    { id: "play",        label: "Play",        icon: FaChessBoard },
+    { id: "leaderboard", label: "Leaderboard", icon: FaTrophy },
+    { id: "solver",      label: "Solver",      icon: FiSettings },
+    { id: "compare",     label: "Compare",     icon: BiGitCompare },
 ];
 
 export default function SixteenQueens() {
@@ -46,18 +48,34 @@ export default function SixteenQueens() {
 
                 {/* ── Tabs ── */}
                 <div className="max-w-6xl mx-auto px-6 flex gap-1 border-t border-gray-700/40">
-                    {TABS.map((t) => (
-                        <button
-                            key={t.id}
-                            onClick={() => setActive(t.id)}
-                            className={`px-5 py-3 text-sm font-medium border-b-2 transition cursor-pointer whitespace-nowrap
-                ${active === t.id
-                                ? "border-red-400 text-red-400"
-                                : "border-transparent text-gray-400 hover:text-white"}`}
-                        >
-                            {t.label}
-                        </button>
-                    ))}
+                    {TABS.map((t) => {
+                        const Icon = t.icon;
+
+                        return (
+                            <button
+                                key={t.id}
+                                onClick={() => setActive(t.id)}
+                                className={`px-5 py-3 text-sm font-medium border-b-2 transition cursor-pointer whitespace-nowrap flex items-center gap-2
+                                ${
+                                    active === t.id
+                                        ? "border-red-400 text-white"
+                                        : "border-transparent text-gray-400 hover:text-white"
+                                }`}
+                            >
+                                <span
+                                    className={`p-1 rounded-md flex items-center justify-center
+                                    ${
+                                        active === t.id
+                                            ? "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-md shadow-red-500/30"
+                                            : "text-gray-400"
+                                    }`}
+                                >
+                                    <Icon size={16} />
+                                </span>
+                                {t.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </header>
 
