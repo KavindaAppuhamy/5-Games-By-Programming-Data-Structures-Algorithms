@@ -19,7 +19,7 @@ export default function Chessboard({ board, onCellClick, readOnly = false }) {
     const conflicts = getConflicts(board);
 
     return (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto flex items-center justify-center">
             <div
                 className="inline-grid border-2 border-gray-600 rounded overflow-hidden"
                 style={{ gridTemplateColumns: `repeat(${N}, 1.625rem)` }}

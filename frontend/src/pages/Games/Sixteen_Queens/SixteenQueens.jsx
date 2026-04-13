@@ -8,15 +8,15 @@ import PlayTab from "./components/PlayTab.jsx";
 import LeaderboardTab from "./components/LeaderboardTab.jsx";
 
 const TABS = [
-    { id: "solver",      label: "⚙ Solver"       },
-    { id: "compare",     label: "📊 Compare"      },
     { id: "play",        label: "♛ Play"          },
     { id: "leaderboard", label: "🏆 Leaderboard"  },
+    { id: "solver",      label: "⚙ Solver"       },
+    { id: "compare",     label: "📊 Compare"      },
 ];
 
 export default function SixteenQueens() {
     const navigate = useNavigate();
-    const [active,    setActive]    = useState("solver");
+    const [active,    setActive]    = useState("play");
     const [seqResult, setSeqResult] = useState(null);
     const [thrResult, setThrResult] = useState(null);
 
@@ -63,10 +63,10 @@ export default function SixteenQueens() {
 
             {/* ── Content ── */}
             <main className="max-w-6xl mx-auto px-6 py-8">
-                {active === "solver"      && <SolverTab      onSeqDone={setSeqResult} onThrDone={setThrResult} />}
-                {active === "compare"     && <CompareTab      seqResult={seqResult}   thrResult={thrResult} />}
                 {active === "play"        && <PlayTab />}
                 {active === "leaderboard" && <LeaderboardTab />}
+                {active === "solver"      && <SolverTab      onSeqDone={setSeqResult} onThrDone={setThrResult} />}
+                {active === "compare"     && <CompareTab      seqResult={seqResult}   thrResult={thrResult} />}
             </main>
         </div>
     );
