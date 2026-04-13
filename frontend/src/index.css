@@ -1,1 +1,101 @@
 @import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --neon-green: #00ff88;
+  --neon-blue: #00c8ff;
+  --neon-purple: #a855f7;
+  --neon-red: #ff4466;
+  --neon-gold: #ffd700;
+  --bg: #0a0a12;
+  --card: #12121f;
+  --border: #1e1e35;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bg);
+  color: #e8e8f0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--card); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2e2e50; }
+
+/* Neon text utilities */
+.neon-green { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
+.neon-blue  { color: var(--neon-blue);  text-shadow: 0 0 10px var(--neon-blue); }
+.neon-gold  { color: var(--neon-gold);  text-shadow: 0 0 10px var(--neon-gold); }
+.neon-red   { color: var(--neon-red);   text-shadow: 0 0 10px var(--neon-red); }
+
+/* Grid background pattern */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Glass card */
+.glass {
+  background: rgba(18, 18, 31, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Button glow effects */
+.btn-glow-green {
+  box-shadow: 0 0 15px rgba(0,255,136,0.3), inset 0 0 15px rgba(0,255,136,0.05);
+  transition: box-shadow 0.3s;
+}
+.btn-glow-green:hover {
+  box-shadow: 0 0 25px rgba(0,255,136,0.5), inset 0 0 25px rgba(0,255,136,0.1);
+}
+.btn-glow-red {
+  box-shadow: 0 0 15px rgba(255,68,102,0.3), inset 0 0 15px rgba(255,68,102,0.05);
+}
+
+/* Snake cell */
+.cell-snake {
+  background: linear-gradient(135deg, rgba(255,68,102,0.2), rgba(255,68,102,0.05));
+  border-color: rgba(255,68,102,0.5) !important;
+}
+/* Ladder cell */
+.cell-ladder {
+  background: linear-gradient(135deg, rgba(0,255,136,0.2), rgba(0,255,136,0.05));
+  border-color: rgba(0,255,136,0.5) !important;
+}
+/* Start/End cells */
+.cell-start { background: linear-gradient(135deg, rgba(0,200,255,0.25), rgba(0,200,255,0.05)); border-color: rgba(0,200,255,0.5) !important; }
+.cell-end   { background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,215,0,0.05));  border-color: rgba(255,215,0,0.5) !important; }
+
+/* Timer ring animation */
+@keyframes countdown {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 283; }
+}
+
+/* Choice button */
+.choice-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.choice-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.04));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.choice-btn:hover::before { opacity: 1; }
