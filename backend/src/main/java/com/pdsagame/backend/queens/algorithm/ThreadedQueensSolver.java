@@ -38,6 +38,7 @@ public class ThreadedQueensSolver {
 
         int perThread = (limit > 0) ? Math.max(1, limit / THREAD_COUNT) : 0;
 
+
         long start = System.currentTimeMillis();
 
         // Each thread handles a subset of first-row column values

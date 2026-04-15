@@ -116,7 +116,7 @@ export default function SolverTab({ onSeqDone, onThrDone }) {
             <div className="bg-gray-900 border border-gray-700/60 rounded-2xl p-6">
                 <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest mb-1">Run Solvers</h2>
                 <p className="text-sm text-gray-400 mb-5">
-                    Each run stores up to 500 verified solutions in MySQL and records execution time.
+                    Each run stores up to 500 verified solutions in Database and records execution time.
                     Run both to unlock the Compare tab.
                 </p>
 
