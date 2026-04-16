@@ -1,0 +1,78 @@
+package com.pdsagame.backend;
+
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+
+import java.util.*;
+
+@RestController
+@RequestMapping("/api/game")
+@CrossOrigin("*")
+public class TrafficController {
+
+    private final GameService gameService;
+    private final Repository repository;
+
+    public TrafficController(GameService gameService, Repository repository) {
+        this.gameService = gameService;
+        this.repository = repository;
+    }
+
+    // ---------------- START GAME ----------------
+    @GetMapping("/start")
+    public Map<String, Object> startGame() {
+        try {
+            Map<String, Object> res = new HashMap<>();
+            res.put("edges", gameService.startGame());
+            return res;
+        } catch (GameException e) {
+            throw e; // Let GlobalExceptionHandler handle it
+        } catch (Exception e) {
+            throw new GameException("Unexpected error starting game", e);
+        }
+    }
+
+    // ---------------- SUBMIT GUESS ----------------
+    @PostMapping("/submit")
+    public Map<String, Object> submit(@Valid @RequestBody GameSubmitRequest request) {
+        try {
+            String name = request.getName();
+            int guess = request.getGuess();
+
+            // 🔥 calculate max flow
+            MaxFlowResult result = gameService.calculateMaxFlow();
+            int correct = result.getMaxFlow();
+
+            boolean win = (guess == correct);
+
+            // 🔍 DEBUG (IMPORTANT)
+            System.out.println("EK TIME = " + result.getEkTimeMs());
+            System.out.println("DINIC TIME = " + result.getDinicTimeMs());
+
+            // ---------------- SAVE ----------------
+            GameResult gameResult = new GameResult();
+            gameResult.setPlayerName(name);
+            gameResult.setGuessedValue(guess);
+            gameResult.setCorrectValue(correct);
+            gameResult.setWin(win);
+            gameResult.setEdmondsKarpTimeMs(result.getEkTimeMs());
+            gameResult.setDinicTimeMs(result.getDinicTimeMs());
+
+            repository.save(gameResult);
+
+            // ---------------- RESPONSE ----------------
+            Map<String, Object> res = new HashMap<>();
+            res.put("correct", correct);
+            res.put("win", win);
+            res.put("ekTime", result.getEkTimeMs());
+            res.put("dinicTime", result.getDinicTimeMs());
+
+            return res;
+        } catch (GameValidationException | GameException e) {
+            throw e; // Let GlobalExceptionHandler handle it
+        } catch (Exception e) {
+            throw new GameException("Unexpected error submitting guess", e);
+        }
+    }
+}
