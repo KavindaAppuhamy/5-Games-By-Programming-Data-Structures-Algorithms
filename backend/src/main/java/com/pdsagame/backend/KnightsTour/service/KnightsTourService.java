@@ -1,6 +1,6 @@
 package com.pdsagame.backend.KnightsTour.service;
 
-import com.knightstour.model.KnightMove;
+import com.pdsagame.backend.KnightsTour.model.KnightMove;
 import com.knightstour.entity.GameSession;
 import com.knightstour.repositories.GameRepository;
 import org.springframework.beans.factory.annotation.Autowired;
