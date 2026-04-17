@@ -14,7 +14,7 @@ import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+public class SnakeLadderExceptionHandler {
 
     @ExceptionHandler(GameRoundNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleGameRoundNotFound(GameRoundNotFoundException ex) {
