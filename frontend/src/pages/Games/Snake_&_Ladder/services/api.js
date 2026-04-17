@@ -2,7 +2,7 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 
 const api = axios.create({
-  baseURL: '/api/game',
+  baseURL: '/api/snake',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
