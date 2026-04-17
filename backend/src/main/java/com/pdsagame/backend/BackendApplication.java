@@ -4,9 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class KnightsTourApplication {
+public class BackendApplication {
     public static void main(String[] args) {
-        SpringApplication.run(KnightsTourApplication.class, args);
+        SpringApplication.run(BackendApplication.class, args);
         System.out.println("========================================");
         System.out.println("🐴 KNIGHT'S TOUR GAME BACKEND STARTED! 🐴");
         System.out.println("========================================");
