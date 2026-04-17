@@ -8,7 +8,7 @@ import com.pdsagame.backend.SnakeLadderGame.model.PlayerResult;
 import com.pdsagame.backend.SnakeLadderGame.repository.GameRoundRepository;
 import com.pdsagame.backend.SnakeLadderGame.repository.PlayerResultRepository;
 import com.pdsagame.backend.SnakeLadderGame.service.BoardGeneratorService;
-import com.pdsagame.backend.SnakeLadderGame.service.GameService;
+import com.pdsagame.backend.SnakeLadderGame.service.SnakeLadderGameService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,8 +28,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("GameService Tests")
-class GameServiceTest {
+@DisplayName("SnakeLadderGameService Tests")
+class SnakeLadderGameServiceTest {
 
     @Mock private BoardGeneratorService boardGeneratorService;
     @Mock private BfsAlgorithm bfsAlgorithm;
@@ -38,7 +38,7 @@ class GameServiceTest {
     @Mock private PlayerResultRepository playerResultRepository;
 
     @InjectMocks
-    private GameService gameService;
+    private SnakeLadderGameService snakeLadderGameService;
 
     private Map<Integer, Integer> mockSnakes;
     private Map<Integer, Integer> mockLadders;
@@ -76,7 +76,7 @@ class GameServiceTest {
         when(boardGeneratorService.serializeMap(anyMap())).thenReturn("dummy");
         when(gameRoundRepository.save(any(GameRound.class))).thenReturn(mockRound);
 
-        NewGameResponse response = gameService.createNewGame(6);
+        NewGameResponse response = snakeLadderGameService.createNewGame(6);
 
         assertNotNull(response);
         assertEquals(3, response.getChoices().size());
@@ -98,7 +98,7 @@ class GameServiceTest {
         when(boardGeneratorService.serializeMap(anyMap())).thenReturn("dummy");
         when(gameRoundRepository.save(any(GameRound.class))).thenReturn(mockRound);
 
-        NewGameResponse response = gameService.createNewGame(6);
+        NewGameResponse response = snakeLadderGameService.createNewGame(6);
 
         assertTrue(response.getChoices().contains(response.getCorrectAnswer()),
             "Choices must always include the correct answer");
@@ -115,7 +115,7 @@ class GameServiceTest {
         when(boardGeneratorService.serializeMap(anyMap())).thenReturn("dummy");
         when(gameRoundRepository.save(any(GameRound.class))).thenReturn(mockRound);
 
-        gameService.createNewGame(6);
+        snakeLadderGameService.createNewGame(6);
 
         verify(gameRoundRepository, times(1)).save(any(GameRound.class));
     }
@@ -125,7 +125,7 @@ class GameServiceTest {
     void testCreateNewGame_invalidBoard_throwsException() {
         when(boardGeneratorService.generateBoard(anyInt()))
             .thenThrow(new InvalidBoardConfigException("Cannot generate board"));
-        assertThrows(InvalidBoardConfigException.class, () -> gameService.createNewGame(6));
+        assertThrows(InvalidBoardConfigException.class, () -> snakeLadderGameService.createNewGame(6));
     }
 
     // ─── submitAnswer tests ───────────────────────────────────────────────────
@@ -143,7 +143,7 @@ class GameServiceTest {
             .timeTakenSeconds(30L)
             .build();
 
-        SubmitAnswerResponse response = gameService.submitAnswer(request);
+        SubmitAnswerResponse response = snakeLadderGameService.submitAnswer(request);
 
         assertTrue(response.isCorrect());
         assertEquals("WIN", response.getResult());
@@ -163,7 +163,7 @@ class GameServiceTest {
             .timeTakenSeconds(45L)
             .build();
 
-        SubmitAnswerResponse response = gameService.submitAnswer(request);
+        SubmitAnswerResponse response = snakeLadderGameService.submitAnswer(request);
 
         assertFalse(response.isCorrect());
         assertEquals("DRAW", response.getResult());
@@ -182,7 +182,7 @@ class GameServiceTest {
             .timeTakenSeconds(60L)
             .build();
 
-        SubmitAnswerResponse response = gameService.submitAnswer(request);
+        SubmitAnswerResponse response = snakeLadderGameService.submitAnswer(request);
 
         assertFalse(response.isCorrect());
         assertEquals("LOSE", response.getResult());
@@ -199,7 +199,7 @@ class GameServiceTest {
             .playerAnswer(5)
             .build();
 
-        assertThrows(GameRoundNotFoundException.class, () -> gameService.submitAnswer(request));
+        assertThrows(GameRoundNotFoundException.class, () -> snakeLadderGameService.submitAnswer(request));
     }
 
     @Test
@@ -211,7 +211,7 @@ class GameServiceTest {
         SubmitAnswerRequest request = SubmitAnswerRequest.builder()
             .gameRoundId(1L).playerName("Eve").playerAnswer(2).build();
 
-        gameService.submitAnswer(request);
+        snakeLadderGameService.submitAnswer(request);
 
         verify(playerResultRepository, times(1)).save(any(PlayerResult.class));
     }
@@ -221,7 +221,7 @@ class GameServiceTest {
     @Test
     @DisplayName("generateChoices produces exactly 3 unique options")
     void testGenerateChoices_threeUniqueOptions() {
-        List<Integer> choices = gameService.generateChoices(10);
+        List<Integer> choices = snakeLadderGameService.generateChoices(10);
         assertEquals(3, choices.size());
         assertEquals(3, new HashSet<>(choices).size(), "All choices must be unique");
     }
@@ -230,7 +230,7 @@ class GameServiceTest {
     @DisplayName("generateChoices always includes the correct answer")
     void testGenerateChoices_includesCorrectAnswer() {
         for (int correct = 1; correct <= 20; correct++) {
-            List<Integer> choices = gameService.generateChoices(correct);
+            List<Integer> choices = snakeLadderGameService.generateChoices(correct);
             assertTrue(choices.contains(correct),
                 "Choices must include correct answer: " + correct);
         }
@@ -239,7 +239,7 @@ class GameServiceTest {
     @Test
     @DisplayName("generateChoices all options are positive integers")
     void testGenerateChoices_allPositive() {
-        List<Integer> choices = gameService.generateChoices(1);
+        List<Integer> choices = snakeLadderGameService.generateChoices(1);
         choices.forEach(c -> assertTrue(c >= 1, "All choices must be >= 1"));
     }
 
@@ -250,7 +250,7 @@ class GameServiceTest {
     void testGetAlgorithmStats_returnsStats() {
         when(gameRoundRepository.findById(1L)).thenReturn(Optional.of(mockRound));
 
-        AlgorithmStats stats = gameService.getAlgorithmStats(1L);
+        AlgorithmStats stats = snakeLadderGameService.getAlgorithmStats(1L);
 
         assertNotNull(stats);
         assertEquals(7, stats.getMinDiceThrows());
@@ -263,6 +263,6 @@ class GameServiceTest {
     @DisplayName("getAlgorithmStats throws for unknown round")
     void testGetAlgorithmStats_unknownRound_throwsException() {
         when(gameRoundRepository.findById(999L)).thenReturn(Optional.empty());
-        assertThrows(GameRoundNotFoundException.class, () -> gameService.getAlgorithmStats(999L));
+        assertThrows(GameRoundNotFoundException.class, () -> snakeLadderGameService.getAlgorithmStats(999L));
     }
 }
