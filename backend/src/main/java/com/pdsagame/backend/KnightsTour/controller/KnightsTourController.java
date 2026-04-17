@@ -1,4 +1,4 @@
-package com.knightstour.controller;
+package com.pdsagame.backend.KnightsTour.controller;
 
 import com.knightstour.service.KnightsTourService;
 import org.springframework.beans.factory.annotation.Autowired;

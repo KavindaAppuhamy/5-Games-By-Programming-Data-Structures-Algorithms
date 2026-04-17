@@ -1,4 +1,4 @@
-package com.knightstour.service;
+package com.pdsagame.backend.KnightsTour.service;
 
 import com.knightstour.model.KnightMove;
 import com.knightstour.entity.GameSession;

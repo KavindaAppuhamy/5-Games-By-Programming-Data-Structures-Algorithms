@@ -1,4 +1,4 @@
-package com.knightstour.repositories;
+package com.pdsagame.backend.KnightsTour.repositories;
 
 import com.knightstour.entity.GameSession;
 import org.springframework.data.jpa.repository.JpaRepository;

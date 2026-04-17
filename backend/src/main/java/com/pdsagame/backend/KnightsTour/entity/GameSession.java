@@ -1,4 +1,4 @@
-package com.knightstour.entity;
+package com.pdsagame.backend.KnightsTour.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;

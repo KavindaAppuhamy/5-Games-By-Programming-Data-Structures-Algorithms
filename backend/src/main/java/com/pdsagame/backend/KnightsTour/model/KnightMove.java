@@ -1,4 +1,4 @@
-package com.knightstour.model;
+package com.pdsagame.backend.KnightsTour.model;
 
 import java.util.ArrayList;
 import java.util.List;
