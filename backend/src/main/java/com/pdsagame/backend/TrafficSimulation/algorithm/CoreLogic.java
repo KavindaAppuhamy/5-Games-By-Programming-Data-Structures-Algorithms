@@ -1,4 +1,6 @@
-package com.pdsagame.backend;
+package com.pdsagame.backend.TrafficSimulation.algorithm;
+
+import com.pdsagame.backend.TrafficSimulation.model.TrafficEdge;
 
 import org.springframework.stereotype.Service;
 import java.util.*;

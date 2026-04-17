@@ -1,4 +1,4 @@
-package com.pdsagame.backend;
+package com.pdsagame.backend.TrafficSimulation.algorithm;
 
 public class MaxFlowResult {
     private final int maxFlow;

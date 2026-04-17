@@ -1,4 +1,13 @@
-package com.pdsagame.backend;
+package com.pdsagame.backend.TrafficSimulation.service;
+
+import com.pdsagame.backend.TrafficSimulation.algorithm.GraphGenerator;
+import com.pdsagame.backend.TrafficSimulation.algorithm.CoreLogic;
+import com.pdsagame.backend.TrafficSimulation.model.TrafficEdge;
+import com.pdsagame.backend.TrafficSimulation.exception.GameException;
+import com.pdsagame.backend.TrafficSimulation.exception.GameValidationException;
+import com.pdsagame.backend.TrafficSimulation.algorithm.MaxFlowResult;
+import com.pdsagame.backend.TrafficSimulation.algorithm.Dinic;
+import com.pdsagame.backend.TrafficSimulation.algorithm.EdmondsKarp;
 
 import org.springframework.stereotype.Service;
 

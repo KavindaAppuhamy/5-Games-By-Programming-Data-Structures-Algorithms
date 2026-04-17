@@ -1,4 +1,4 @@
-package com.pdsagame.backend;
+package com.pdsagame.backend.TrafficSimulation.exception;
 
 public class GameValidationException extends RuntimeException {
 

@@ -1,4 +1,4 @@
-package com.pdsagame.backend;
+package com.pdsagame.backend.TrafficSimulation.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

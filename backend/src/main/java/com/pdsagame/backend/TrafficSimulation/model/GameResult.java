@@ -1,4 +1,4 @@
-package com.pdsagame.backend;
+package com.pdsagame.backend.TrafficSimulation.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
