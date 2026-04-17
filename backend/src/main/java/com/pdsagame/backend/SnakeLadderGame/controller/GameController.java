@@ -1,7 +1,7 @@
 package com.pdsagame.backend.SnakeLadderGame.controller;
 
 import com.pdsagame.backend.SnakeLadderGame.dto.GameDtos.*;
-import com.pdsagame.backend.SnakeLadderGame.service.GameService;
+import com.pdsagame.backend.SnakeLadderGame.service.SnakeLadderGameService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/game")
+@RequestMapping("/api/snake")
 @RequiredArgsConstructor
 @Slf4j
 public class GameController {
 
-    private final GameService gameService;
+    private final SnakeLadderGameService snakeLadderGameService;
 
     /**
      * POST /api/game/new
@@ -27,7 +27,7 @@ public class GameController {
     public ResponseEntity<ApiResponse<NewGameResponse>> newGame(
             @Valid @RequestBody NewGameRequest request) {
         log.info("New game request: boardSize={}", request.getBoardSize());
-        NewGameResponse response = gameService.createNewGame(request.getBoardSize());
+        NewGameResponse response = snakeLadderGameService.createNewGame(request.getBoardSize());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success("Game created successfully", response));
     }
@@ -40,7 +40,7 @@ public class GameController {
     public ResponseEntity<ApiResponse<SubmitAnswerResponse>> submitAnswer(
             @Valid @RequestBody SubmitAnswerRequest request) {
         log.info("Submit answer from player: {}", request.getPlayerName());
-        SubmitAnswerResponse response = gameService.submitAnswer(request);
+        SubmitAnswerResponse response = snakeLadderGameService.submitAnswer(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -50,7 +50,7 @@ public class GameController {
      */
     @GetMapping("/leaderboard")
     public ResponseEntity<ApiResponse<List<LeaderboardEntry>>> getLeaderboard() {
-        List<LeaderboardEntry> leaderboard = gameService.getLeaderboard();
+        List<LeaderboardEntry> leaderboard = snakeLadderGameService.getLeaderboard();
         return ResponseEntity.ok(ApiResponse.success(leaderboard));
     }
 
@@ -60,7 +60,7 @@ public class GameController {
      */
     @GetMapping("/stats/{roundId}")
     public ResponseEntity<ApiResponse<AlgorithmStats>> getStats(@PathVariable Long roundId) {
-        AlgorithmStats stats = gameService.getAlgorithmStats(roundId);
+        AlgorithmStats stats = snakeLadderGameService.getAlgorithmStats(roundId);
         return ResponseEntity.ok(ApiResponse.success(stats));
     }
 

@@ -1,6 +1,6 @@
 package com.pdsagame.backend.TrafficSimulation.controller;
 
-import com.pdsagame.backend.TrafficSimulation.service.GameService;
+import com.pdsagame.backend.TrafficSimulation.service.TrafficGameService;
 import com.pdsagame.backend.TrafficSimulation.repository.Repository;
 import com.pdsagame.backend.TrafficSimulation.dto.GameSubmitRequest;
 import com.pdsagame.backend.TrafficSimulation.algorithm.MaxFlowResult;
@@ -15,15 +15,15 @@ import jakarta.validation.Valid;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/game")
+@RequestMapping("/api/traffic")
 @CrossOrigin("*")
 public class TrafficController {
 
-    private final GameService gameService;
+    private final TrafficGameService trafficGameService;
     private final Repository repository;
 
-    public TrafficController(GameService gameService, Repository repository) {
-        this.gameService = gameService;
+    public TrafficController(TrafficGameService trafficGameService, Repository repository) {
+        this.trafficGameService = trafficGameService;
         this.repository = repository;
     }
 
@@ -32,7 +32,7 @@ public class TrafficController {
     public Map<String, Object> startGame() {
         try {
             Map<String, Object> res = new HashMap<>();
-            res.put("edges", gameService.startGame());
+            res.put("edges", trafficGameService.startGame());
             return res;
         } catch (GameException e) {
             throw e; // Let GlobalExceptionHandler handle it
@@ -49,7 +49,7 @@ public class TrafficController {
             int guess = request.getGuess();
 
             // 🔥 calculate max flow
-            MaxFlowResult result = gameService.calculateMaxFlow();
+            MaxFlowResult result = trafficGameService.calculateMaxFlow();
             int correct = result.getMaxFlow();
 
             boolean win = (guess == correct);

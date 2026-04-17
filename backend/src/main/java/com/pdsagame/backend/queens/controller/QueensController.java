@@ -1,6 +1,6 @@
 package com.pdsagame.backend.queens.controller;
 
-import com.pdsagame.backend.queens.service.QueensService;
+import com.pdsagame.backend.queens.service.QueensGameService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +12,9 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class QueensController {
 
-    private final QueensService service;
+    private final QueensGameService service;
 
-    public QueensController(QueensService service) {
+    public QueensController(QueensGameService service) {
         this.service = service;
     }
 
@@ -25,7 +25,7 @@ public class QueensController {
      * Runs the sequential backtracking solver and saves results to DB.
      */
     @PostMapping("/solve/sequential")
-    public ResponseEntity<QueensService.SolverRunDto> runSequential() {
+    public ResponseEntity<QueensGameService.SolverRunDto> runSequential() {
         return ResponseEntity.ok(service.runSequential());
     }
 
@@ -34,7 +34,7 @@ public class QueensController {
      * Runs the multithreaded solver and saves results to DB.
      */
     @PostMapping("/solve/threaded")
-    public ResponseEntity<QueensService.SolverRunDto> runThreaded() {
+    public ResponseEntity<QueensGameService.SolverRunDto> runThreaded() {
         return ResponseEntity.ok(service.runThreaded());
     }
 
@@ -43,7 +43,7 @@ public class QueensController {
      * Returns the latest sequential vs threaded run results for comparison.
      */
     @GetMapping("/solve/compare")
-    public ResponseEntity<QueensService.ComparisonDto> compare() {
+    public ResponseEntity<QueensGameService.ComparisonDto> compare() {
         return ResponseEntity.ok(service.getComparison());
     }
 
@@ -56,7 +56,7 @@ public class QueensController {
      */
     @PostMapping("/submit")
     public ResponseEntity<Map<String, Object>> submit(@RequestBody SubmitRequest request) {
-        QueensService.SubmitResult result = service.submitSolution(request.playerName(), request.placement());
+        QueensGameService.SubmitResult result = service.submitSolution(request.playerName(), request.placement());
         return ResponseEntity.ok(Map.of(
                 "status", result.status.name(),
                 "message", result.message,
@@ -70,7 +70,7 @@ public class QueensController {
      * Returns all solutions in DB with claim status.
      */
     @GetMapping("/solutions")
-    public ResponseEntity<List<QueensService.SolutionDto>> getSolutions() {
+    public ResponseEntity<List<QueensGameService.SolutionDto>> getSolutions() {
         return ResponseEntity.ok(service.getAllSolutions());
     }
 
@@ -79,7 +79,7 @@ public class QueensController {
      * Returns player rankings sorted by number of solutions found.
      */
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<QueensService.LeaderboardEntry>> getLeaderboard() {
+    public ResponseEntity<List<QueensGameService.LeaderboardEntry>> getLeaderboard() {
         return ResponseEntity.ok(service.getLeaderboard());
     }
 

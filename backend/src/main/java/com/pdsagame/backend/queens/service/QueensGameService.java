@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Service
-public class QueensService {
+public class QueensGameService {
 
     @Value("${queens.board.size}")
     private int BOARD_SIZE = 16;
@@ -28,11 +28,11 @@ public class QueensService {
     private final SequentialQueensSolver seqSolver;
     private final ThreadedQueensSolver thrSolver;
 
-    public QueensService(QueensSolutionRepository solutionRepo,
-                         PlayerRecordRepository playerRepo,
-                         SolverRunRepository solverRunRepo,
-                         SequentialQueensSolver seqSolver,
-                         ThreadedQueensSolver thrSolver) {
+    public QueensGameService(QueensSolutionRepository solutionRepo,
+                             PlayerRecordRepository playerRepo,
+                             SolverRunRepository solverRunRepo,
+                             SequentialQueensSolver seqSolver,
+                             ThreadedQueensSolver thrSolver) {
         this.solutionRepo = solutionRepo;
         this.playerRepo = playerRepo;
         this.solverRunRepo = solverRunRepo;

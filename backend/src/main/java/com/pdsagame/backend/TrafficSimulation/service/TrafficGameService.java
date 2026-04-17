@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
-public class GameService {
+public class TrafficGameService {
 
     private final GraphGenerator graphGenerator;
     private final CoreLogic coreLogic;
@@ -25,7 +25,7 @@ public class GameService {
     private long ekTime;
     private long dinicTime;
 
-    public GameService(GraphGenerator graphGenerator, CoreLogic coreLogic) {
+    public TrafficGameService(GraphGenerator graphGenerator, CoreLogic coreLogic) {
         this.graphGenerator = graphGenerator;
         this.coreLogic = coreLogic;
     }

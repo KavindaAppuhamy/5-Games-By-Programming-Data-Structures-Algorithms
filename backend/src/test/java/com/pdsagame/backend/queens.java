@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class QueensApplicationTests {
 
     @Autowired
-    QueensService service;
+    QueensGameService service;
     @Autowired
     SequentialQueensSolver seqSolver;
     @Autowired
@@ -175,8 +175,8 @@ class QueensApplicationTests {
         service.runSequential();
         // Use a known valid 16-queens solution (verified by backtracker)
         int[] sol = seqSolver.solve(16, 1).getSolutions().getFirst();
-        QueensService.SubmitResult result = service.submitSolution("Alice", sol);
-        assertEquals(QueensService.SubmitResult.Status.SUCCESS, result.status);
+        QueensGameService.SubmitResult result = service.submitSolution("Alice", sol);
+        assertEquals(QueensGameService.SubmitResult.Status.SUCCESS, result.status);
     }
 
     @Test
@@ -185,8 +185,8 @@ class QueensApplicationTests {
         service.runSequential();
         int[] sol = seqSolver.solve(16, 1).getSolutions().getFirst();
         service.submitSolution("Alice", sol);
-        QueensService.SubmitResult result = service.submitSolution("Bob", sol);
-        assertEquals(QueensService.SubmitResult.Status.ALREADY_CLAIMED, result.status);
+        QueensGameService.SubmitResult result = service.submitSolution("Bob", sol);
+        assertEquals(QueensGameService.SubmitResult.Status.ALREADY_CLAIMED, result.status);
     }
 
     @Test
@@ -219,7 +219,7 @@ class QueensApplicationTests {
         service.submitSolution("Alice", sols.get(1));
         service.submitSolution("Bob", sols.get(2));
 
-        List<QueensService.LeaderboardEntry> board = service.getLeaderboard();
+        List<QueensGameService.LeaderboardEntry> board = service.getLeaderboard();
         assertFalse(board.isEmpty());
         assertEquals("Alice", board.get(0).playerName());
         assertTrue(board.get(0).solutionsFound() >= board.get(1).solutionsFound());
@@ -228,7 +228,7 @@ class QueensApplicationTests {
     @Test
     @DisplayName("Comparison DTO is null when no runs recorded yet")
     void testComparisonEmpty() {
-        QueensService.ComparisonDto dto = service.getComparison();
+        QueensGameService.ComparisonDto dto = service.getComparison();
         // May be null if no runs exist in the test DB
         //  check it doesn't throw
         assertDoesNotThrow(() -> service.getComparison());

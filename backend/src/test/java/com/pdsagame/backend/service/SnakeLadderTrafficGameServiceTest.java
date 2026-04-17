@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SnakeLadderGameService Tests")
-class SnakeLadderGameServiceTest {
+class SnakeLadderTrafficGameServiceTest {
 
     @Mock private BoardGeneratorService boardGeneratorService;
     @Mock private BfsAlgorithm bfsAlgorithm;

@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GameService {
+public class SnakeLadderGameService {
 
     private final BoardGeneratorService boardGeneratorService;
     private final BfsAlgorithm bfsAlgorithm;
