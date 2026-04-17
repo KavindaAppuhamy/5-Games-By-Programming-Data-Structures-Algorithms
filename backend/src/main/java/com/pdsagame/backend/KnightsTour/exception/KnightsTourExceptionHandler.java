@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 @ControllerAdvice
-public class GlobalExceptionHandler {
+public class KnightsTourExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception e) {

@@ -35,7 +35,7 @@ public class TrafficController {
             res.put("edges", trafficGameService.startGame());
             return res;
         } catch (GameException e) {
-            throw e; // Let GlobalExceptionHandler handle it
+            throw e; // Let TrafficExceptionHandler handle it
         } catch (Exception e) {
             throw new GameException("Unexpected error starting game", e);
         }
@@ -78,7 +78,7 @@ public class TrafficController {
 
             return res;
         } catch (GameValidationException | GameException e) {
-            throw e; // Let GlobalExceptionHandler handle it
+            throw e; // Let TrafficExceptionHandler handle it
         } catch (Exception e) {
             throw new GameException("Unexpected error submitting guess", e);
         }
