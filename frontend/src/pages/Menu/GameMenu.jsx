@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 export default function GameMenu() {
   const navigate = useNavigate();
 
-    const games = [
-    { name: "Minimum Cost Assignment", path: "/min-cost", color: "from-purple-500 to-pink-500" },
+  const games = [
+    { name: "Minimum Cost", path: "/min-cost", color: "from-purple-500 to-pink-500" },
     { name: "Snake & Ladder", path: "/snake-ladder", color: "from-green-400 to-emerald-600" },
     { name: "Traffic Simulation", path: "/traffic", color: "from-yellow-400 to-orange-500" },
     { name: "Knight's Tour", path: "/knight-tour", color: "from-blue-500 to-cyan-500" },
     { name: "Sixteen Queens", path: "/sixteen-queens", color: "from-red-500 to-rose-600" },
-    ];
+  ];
 
   return (
     <div className="min-h-screen bg-linear-to-br from-black via-gray-900 to-black text-white flex flex-col items-center justify-center p-6">
