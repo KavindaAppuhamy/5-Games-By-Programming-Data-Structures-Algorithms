@@ -1,4 +1,4 @@
-package com.knightstour;  // ← Must be this, NOT com.knightstour.knights_tour
+package com.knightstour;  
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
