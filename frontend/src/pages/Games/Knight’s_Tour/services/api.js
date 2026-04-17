@@ -1,4 +1,4 @@
-﻿const API_BASE_URL = 'http://localhost:8083/api/knights-tour';
+﻿const API_BASE_URL = 'http://localhost:8082/api/knights-tour';
 
 export const knightsTourApi = {
   async solveTour(boardSize, startPosition) {

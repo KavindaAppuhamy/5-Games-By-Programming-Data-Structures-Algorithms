@@ -6,6 +6,7 @@ import SnakeLadder from './pages/Games/Snake_&_Ladder/SnakeLadder'
 import Traffic from './pages/Games/Traffic_Simulation/Traffic'
 import KnightTour from './pages/Games/Knight’s_Tour/KnightTour'
 import SixteenQueens from './pages/Games/Sixteen_Queens/SixteenQueens'
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 
 function App() {
