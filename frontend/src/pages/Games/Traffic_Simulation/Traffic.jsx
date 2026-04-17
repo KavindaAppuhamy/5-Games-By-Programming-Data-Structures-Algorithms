@@ -8,6 +8,7 @@ import ReactFlow, {
     MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import Scoreboard from './Scoreboard'; // ADDED: Import Scoreboard
 
 const nodesInit = [
     { id: 'A', position: { x: 100, y: 200 }, data: { label: '🚦 Source' } },
@@ -132,6 +133,7 @@ export default function App() {
     const [toast, setToast] = useState(null);
     const [gameStarted, setGameStarted] = useState(false);
     const [validationErrors, setValidationErrors] = useState({});
+    const [showScoreboard, setShowScoreboard] = useState(false); // ADDED: Scoreboard state
 
     const showToast = (type, message, correctAnswer = null) => {
         setToast({ type, message, correctAnswer });
@@ -277,6 +279,11 @@ export default function App() {
                 />
             )}
 
+            {/* ADDED: Scoreboard Modal */}
+            {showScoreboard && (
+                <Scoreboard onClose={() => setShowScoreboard(false)} />
+            )}
+
             {/* Flow Diagram Panel */}
             <div style={{
                 width: '70%',
@@ -345,6 +352,38 @@ export default function App() {
                             Guess the maximum flow from source to sink
                         </p>
                     </div>
+
+                    {/* ADDED: Scoreboard Button */}
+                    <button
+                        onClick={() => setShowScoreboard(true)}
+                        style={{
+                            width: '100%',
+                            padding: '12px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#64748b',
+                            background: '#f1f5f9',
+                            border: 'none',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            marginBottom: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#e2e8f0';
+                            e.currentTarget.style.color = '#1e293b';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#f1f5f9';
+                            e.currentTarget.style.color = '#64748b';
+                        }}
+                    >
+                        <span>🏆</span> View Scoreboard
+                    </button>
 
                     {/* Name Input */}
                     <div style={{ marginBottom: '20px' }}>
