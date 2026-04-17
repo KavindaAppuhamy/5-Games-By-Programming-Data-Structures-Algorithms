@@ -7,7 +7,11 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/knights-tour")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
+@CrossOrigin(origins = {
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5173"
+})
 public class KnightsTourController {
     
     @Autowired
