@@ -1,6 +1,6 @@
 package com.pdsagame.backend.KnightsTour.repositories;
 
-import com.pdsagame.backend.knightstour.entity.GameSession;
+import com.pdsagame.backend.KnightsTour.entity.GameSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
