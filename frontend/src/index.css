@@ -5,3 +5,22 @@
 ::-webkit-scrollbar-track { background: #0f0f13; }
 ::-webkit-scrollbar-thumb { background: #3b3b54; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #5b5b7e; }
+@tailwind utilities;
+
+:root {
+  --neon-green: #00ff88;
+  --neon-blue: #00c8ff;
+  --neon-purple: #a855f7;
+  --neon-red: #ff4466;
+  --neon-gold: #ffd700;
+  --bg: #0a0a12;
+  --card: #12121f;
+  --border: #1e1e35;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--card); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2e2e50; }
+
