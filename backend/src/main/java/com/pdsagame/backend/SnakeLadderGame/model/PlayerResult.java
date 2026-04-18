@@ -1,33 +1,34 @@
 package com.pdsagame.backend.SnakeLadderGame.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "player_results")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlayerResult {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Player name is required")
-    @Size(min = 2, max = 100, message = "Player name must be between 2 and 100 characters")
-    @Column(name = "player_name", nullable = false, length = 100)
-    private String playerName;
+    // FK to players table
+    @Column(name = "player_id", nullable = false)
+    private Long playerId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "player_id", insertable = false, updatable = false)
+    private Player player;
 
     @Column(name = "game_round_id", nullable = false)
     private Long gameRoundId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "game_round_id", insertable = false, updatable = false)
+    private GameRound gameRound;
 
     @Column(name = "player_answer", nullable = false)
     private int playerAnswer;
@@ -45,6 +46,6 @@ public class PlayerResult {
     private long timeTakenSeconds;
 
     @CreationTimestamp
-    @Column(name = "answered_at", updatable = false)
-    private LocalDateTime answeredAt;
+    @Column(name = "answered_at", nullable = false, updatable = false)
+    private OffsetDateTime answeredAt;
 }

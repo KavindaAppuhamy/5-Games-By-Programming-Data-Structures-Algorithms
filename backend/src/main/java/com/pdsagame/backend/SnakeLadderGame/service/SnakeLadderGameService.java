@@ -3,16 +3,22 @@ package com.pdsagame.backend.SnakeLadderGame.service;
 import com.pdsagame.backend.SnakeLadderGame.algorithm.BfsAlgorithm;
 import com.pdsagame.backend.SnakeLadderGame.algorithm.DijkstraAlgorithm;
 import com.pdsagame.backend.SnakeLadderGame.dto.GameDtos.*;
+import com.pdsagame.backend.SnakeLadderGame.dto.RoundSummaryDto;
 import com.pdsagame.backend.SnakeLadderGame.exception.GameRoundNotFoundException;
 import com.pdsagame.backend.SnakeLadderGame.model.GameRound;
+import com.pdsagame.backend.SnakeLadderGame.model.Player;
 import com.pdsagame.backend.SnakeLadderGame.model.PlayerResult;
 import com.pdsagame.backend.SnakeLadderGame.repository.GameRoundRepository;
+import com.pdsagame.backend.SnakeLadderGame.repository.PlayerRepository;
 import com.pdsagame.backend.SnakeLadderGame.repository.PlayerResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,6 +32,17 @@ public class SnakeLadderGameService {
     private final DijkstraAlgorithm dijkstraAlgorithm;
     private final GameRoundRepository gameRoundRepository;
     private final PlayerResultRepository playerResultRepository;
+
+    @Autowired
+    private PlayerRepository playerRepository;
+
+
+    private Player findOrCreatePlayer(String name) {
+        return playerRepository.findByNameIgnoreCase(name.trim())
+                .orElseGet(() -> playerRepository.save(
+                        Player.builder().name(name.trim()).build()
+                ));
+    }
 
     /**
      * Create a new game round:
@@ -86,87 +103,81 @@ public class SnakeLadderGameService {
      * Process a player's submitted answer.
      * Records result in DB; if correct, saves player name + answer.
      */
+    // Updated submitAnswer — uses player FK
     @Transactional
     public SubmitAnswerResponse submitAnswer(SubmitAnswerRequest request) {
-        log.info("Processing answer from player: {}", request.getPlayerName());
-
         GameRound round = gameRoundRepository.findById(request.getGameRoundId())
-            .orElseThrow(() -> new GameRoundNotFoundException(
-                "Game round not found with id: " + request.getGameRoundId()));
+                .orElseThrow(() -> new GameRoundNotFoundException(
+                        "Game round not found: " + request.getGameRoundId()));
+
+        Player player = findOrCreatePlayer(request.getPlayerName());
 
         int correctAnswer = round.getMinDiceThrows();
-        int playerAnswer = request.getPlayerAnswer();
+        int playerAnswer  = request.getPlayerAnswer();
         boolean isCorrect = playerAnswer == correctAnswer;
 
-        // Determine result
-        String result;
-        String message;
-        if (isCorrect) {
-            result = "WIN";
-            message = "🎉 Correct! You nailed it, " + request.getPlayerName() + "!";
-        } else if (Math.abs(playerAnswer - correctAnswer) == 1) {
-            result = "DRAW";
-            message = "😅 So close! You were just 1 throw off!";
-        } else {
-            result = "LOSE";
-            message = "❌ Not quite! The correct answer was " + correctAnswer + " throws.";
-        }
+        String result  = isCorrect ? "WIN"
+                : Math.abs(playerAnswer - correctAnswer) == 1 ? "DRAW" : "LOSE";
+        String message = isCorrect
+                ? "🎉 Correct! You nailed it, " + player.getName() + "!"
+                : result.equals("DRAW")
+                ? "😅 So close! You were just 1 throw off!"
+                : "❌ Not quite! The correct answer was " + correctAnswer + " throws.";
 
-        // Save player result
-        PlayerResult playerResult = PlayerResult.builder()
-            .playerName(request.getPlayerName().trim())
-            .gameRoundId(round.getId())
-            .playerAnswer(playerAnswer)
-            .correctAnswer(correctAnswer)
-            .correct(isCorrect)
-            .boardSize(round.getBoardSize())
-            .timeTakenSeconds(request.getTimeTakenSeconds())
-            .build();
-
-        playerResultRepository.save(playerResult);
-
-        // Build algorithm stats
-        AlgorithmStats stats = buildAlgorithmStats(round);
+        playerResultRepository.save(PlayerResult.builder()
+                .playerId(player.getId())
+                .gameRoundId(round.getId())
+                .playerAnswer(playerAnswer)
+                .correctAnswer(correctAnswer)
+                .correct(isCorrect)
+                .boardSize(round.getBoardSize())
+                .timeTakenSeconds(request.getTimeTakenSeconds())
+                .build());
 
         return SubmitAnswerResponse.builder()
-            .correct(isCorrect)
-            .result(result)
-            .correctAnswer(correctAnswer)
-            .playerAnswer(playerAnswer)
-            .playerName(request.getPlayerName())
-            .message(message)
-            .algorithmStats(stats)
-            .build();
+                .correct(isCorrect).result(result)
+                .correctAnswer(correctAnswer).playerAnswer(playerAnswer)
+                .playerName(player.getName()).message(message)
+                .algorithmStats(buildAlgorithmStats(round))
+                .build();
     }
 
     /**
      * Fetch leaderboard: players with most correct answers.
      */
+    // ✅ NEW — uses player.getName() via the Player relation
     public List<LeaderboardEntry> getLeaderboard() {
-        List<PlayerResult> correct = playerResultRepository.findCorrectAnswersOrderByDate();
+        // Use a JPQL query that joins PlayerResult → Player directly
+        List<Object[]> rows = playerResultRepository.findCorrectAnswersWithPlayerName();
 
-        Map<String, Long> counts = correct.stream()
-            .collect(Collectors.groupingBy(
-                pr -> pr.getPlayerName().toLowerCase(),
-                Collectors.counting()
-            ));
+        Map<String, Long> counts = new LinkedHashMap<>();
+        Map<String, OffsetDateTime> lastDates = new LinkedHashMap<>();
 
-        Map<String, PlayerResult> lastAnswered = correct.stream()
-            .collect(Collectors.toMap(
-                pr -> pr.getPlayerName().toLowerCase(),
-                pr -> pr,
-                (a, b) -> a.getAnsweredAt().isAfter(b.getAnsweredAt()) ? a : b
-            ));
+        for (Object[] row : rows) {
+            String name = (String) row[0];
+            OffsetDateTime date = (OffsetDateTime) row[1]; // ✅ FIXED
+
+            String key = name.toLowerCase();
+            counts.merge(key, 1L, Long::sum);
+            lastDates.merge(key, date, (a, b) -> a.isAfter(b) ? a : b);
+        }
 
         return counts.entrySet().stream()
-            .map(e -> LeaderboardEntry.builder()
-                .playerName(lastAnswered.get(e.getKey()).getPlayerName())
-                .correctAnswers(e.getValue())
-                .lastAnswered(lastAnswered.get(e.getKey()).getAnsweredAt())
-                .build())
-            .sorted((a, b) -> Long.compare(b.getCorrectAnswers(), a.getCorrectAnswers()))
-            .limit(10)
-            .collect(Collectors.toList());
+                .map(e -> {
+                    // find the original-cased name from rows
+                    String originalName = rows.stream()
+                            .filter(r -> ((String) r[0]).equalsIgnoreCase(e.getKey()))
+                            .map(r -> (String) r[0])
+                            .findFirst().orElse(e.getKey());
+                    return LeaderboardEntry.builder()
+                            .playerName(originalName)
+                            .correctAnswers(e.getValue())
+                            .lastAnswered(lastDates.get(e.getKey()))
+                            .build();
+                })
+                .sorted((a, b) -> Long.compare(b.getCorrectAnswers(), a.getCorrectAnswers()))
+                .limit(10)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -232,5 +243,40 @@ public class SnakeLadderGameService {
         if (ns < 1_000_000) return String.format("%.2f µs", ns / 1_000.0);
         if (ns < 1_000_000_000) return String.format("%.2f ms", ns / 1_000_000.0);
         return String.format("%.2f s", ns / 1_000_000_000.0);
+    }
+
+    // Rounds by player name — matches your SQL query
+    public List<RoundSummaryDto> getRoundsByPlayer(String playerName, int limit) {
+        return playerResultRepository
+                .findRoundsByPlayerName(playerName)
+                .stream()
+                .limit(limit)
+                .map(dto -> { dto.setPlayerName(playerName); return dto; })
+                .collect(Collectors.toList());
+    }
+
+    // All rounds
+    public List<RoundSummaryDto> getAllRounds(int limit) {
+        Map<Long, String> playerNames = playerRepository.findAll()
+                .stream().collect(Collectors.toMap(Player::getId, Player::getName));
+
+        return playerResultRepository
+                .findAllRoundsWithPlayers()
+                .stream()
+                .limit(limit)
+                .map(dto -> {
+                    dto.setPlayerName(playerNames.getOrDefault(dto.getPlayerId(), "Unknown"));
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    // All player names (for frontend dropdown)
+    public List<String> getAllPlayerNames() {
+        return playerRepository.findAll()
+                .stream()
+                .map(Player::getName)
+                .sorted()
+                .collect(Collectors.toList());
     }
 }

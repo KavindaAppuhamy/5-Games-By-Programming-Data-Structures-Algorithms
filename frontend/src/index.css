@@ -1,11 +1,11 @@
 @import "tailwindcss";
+@tailwind utilities;
 
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0f0f13; }
 ::-webkit-scrollbar-thumb { background: #3b3b54; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #5b5b7e; }
-@tailwind utilities;
 
 :root {
   --neon-green: #00ff88;

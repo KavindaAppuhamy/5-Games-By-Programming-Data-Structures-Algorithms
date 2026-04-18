@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "game_rounds")
@@ -32,7 +32,7 @@ public class GameRound {
     @Column(name = "dijkstra_time_ns", nullable = false)
     private long dijkstraTimeNs;
 
-    // Snakes and Ladders stored as JSON strings: "from:to,from:to,..."
+    // Snakes and Ladders stored as JSON-like string
     @Column(name = "snakes_config", nullable = false, length = 1000)
     private String snakesConfig;
 
@@ -40,6 +40,6 @@ public class GameRound {
     private String laddersConfig;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
 }

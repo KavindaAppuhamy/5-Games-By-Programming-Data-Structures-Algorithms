@@ -40,6 +40,19 @@ export const gameApi = {
   /** Health check */
   health: () =>
     api.get('/health').then((r) => r.data),
+
+  /** Get all players */
+  getPlayers: () =>
+    api.get('/players').then(r => r.data.data),
+
+  /** Get recent rounds */
+  getRounds: ({ limit = 20 } = {}) =>
+    api.get(`/rounds?limit=${limit}`).then(r => r.data.data),
+
+  /** Get rounds by player */
+  getRoundsByPlayer: (playerName, { limit = 20 } = {}) =>
+    api.get(`/rounds/player/${encodeURIComponent(playerName)}?limit=${limit}`)
+      .then(r => r.data.data),
 }
 
 export default api

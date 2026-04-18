@@ -3,7 +3,7 @@ package com.pdsagame.backend.SnakeLadderGame.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -83,7 +83,7 @@ public class GameDtos {
     public static class LeaderboardEntry {
         private String playerName;
         private long correctAnswers;
-        private LocalDateTime lastAnswered;
+        private OffsetDateTime lastAnswered; // ✅ FIXED
     }
 
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

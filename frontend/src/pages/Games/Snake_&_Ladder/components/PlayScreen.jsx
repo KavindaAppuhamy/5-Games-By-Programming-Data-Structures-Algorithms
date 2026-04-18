@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import GameBoard from './GameBoard'
+import { gameApi } from '../services/api'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap');
@@ -178,10 +179,452 @@ const CSS = `
   .config-from { }
   .config-arrow { color: #1a3050; }
   .config-to { color: #5a7a90; }
+
+  /* ── Generate Button ── */
+  .gen-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer;
+    background: rgba(0,200,255,0.08);
+    border: 1px solid rgba(0,200,255,0.35);
+    color: #00ccff;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .gen-btn:hover {
+    background: rgba(0,200,255,0.15);
+    box-shadow: 0 0 16px rgba(0,200,255,0.2);
+    transform: translateY(-1px);
+  }
+
+  /* ── Modal Overlay ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-box {
+    background: #060e1c;
+    border: 1px solid rgba(0,120,255,0.25);
+    border-radius: 20px;
+    width: 100%; max-width: 980px;
+    max-height: 90vh; overflow-y: auto;
+    position: relative;
+  }
+  .modal-box::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,180,255,0.4), transparent);
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(0,80,160,0.2);
+  }
+  .modal-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px; font-weight: 700; color: #c8e0f0;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .modal-title-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #00ff88; box-shadow: 0 0 8px rgba(0,255,136,0.7);
+  }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,50,80,0.08); border: 1px solid rgba(255,50,80,0.25);
+    color: #ff3350; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: all 0.15s;
+  }
+  .modal-close:hover { background: rgba(255,50,80,0.15); }
+  .modal-body { padding: 1.5rem; }
+
+  /* ── Selection Toggle ── */
+  .sel-toggle {
+    display: flex; gap: 0;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,80,160,0.25);
+    border-radius: 10px; overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .sel-btn {
+    flex: 1; padding: 10px 20px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer; background: transparent;
+    border: none; color: #2a5070; transition: all 0.2s;
+  }
+  .sel-btn.active {
+    background: rgba(0,200,255,0.1); color: #00ccff;
+    box-shadow: inset 0 0 20px rgba(0,200,255,0.05);
+  }
+  .sel-divider { width: 1px; background: rgba(0,80,160,0.25); }
+
+  /* ── Player Select ── */
+  .player-select-wrap { margin-bottom: 1.25rem; }
+  .player-select-label {
+    font-size: 9px; letter-spacing: 0.2em;
+    color: #2a5070; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .player-select {
+    width: 100%; padding: 10px 14px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,80,160,0.3);
+    border-radius: 10px; color: #c8e0f0;
+    font-family: 'Space Mono', monospace; font-size: 13px;
+    outline: none; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+  }
+  .player-select:focus { border-color: rgba(0,200,255,0.4); }
+
+  /* ── Stats Row ── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1rem; margin-bottom: 1.25rem;
+  }
+  .stat-card {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(0,80,160,0.2);
+    border-radius: 12px; padding: 1rem;
+  }
+  .stat-label {
+    font-size: 9px; letter-spacing: 0.15em;
+    color: #2a5070; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .stat-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 24px; font-weight: 700;
+  }
+  .stat-val.green { color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.3); }
+  .stat-val.blue  { color: #00ccff; text-shadow: 0 0 10px rgba(0,200,255,0.3); }
+  .stat-val.purple{ color: #a050ff; text-shadow: 0 0 10px rgba(160,80,255,0.3); }
+  .stat-sub { font-size: 10px; color: #1a4060; margin-top: 3px; }
+
+  /* ── Rounds Table ── */
+  .rounds-table-wrap { overflow-x: auto; }
+  .rounds-table { width: 100%; border-collapse: collapse; }
+  .rounds-table th {
+    padding: 10px 14px; text-align: left;
+    font-size: 10px; letter-spacing: 0.15em;
+    color: #2a5070; text-transform: uppercase;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(0,80,160,0.2);
+    white-space: nowrap;
+  }
+  .rounds-table td {
+    padding: 10px 14px; font-size: 12px;
+    border-bottom: 1px solid rgba(0,40,80,0.3);
+    white-space: nowrap;
+  }
+  .rounds-table tr:hover td { background: rgba(0,80,160,0.06); }
+  .rounds-table tr:last-child td { border-bottom: none; }
+  .t-round  { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #4a7090; }
+  .t-player { color: #00ccff; }
+  .t-throws { font-family: 'Rajdhani', sans-serif; font-weight: 700; color: #00ff88; font-size: 15px; }
+  .t-bfs    { color: #00ccff; }
+  .t-dijk   { color: #a050ff; }
+  .badge-bfs  { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.3); color: #00ccff; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; }
+  .badge-dijk { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(160,80,255,0.1); border: 1px solid rgba(160,80,255,0.3); color: #a050ff; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; }
+  .t-win  { color: #00ff88; font-weight: 700; }
+  .t-lose { color: #ff3355; font-weight: 700; }
+  .t-draw { color: #ffcc00; font-weight: 700; }
+  .t-nodata { text-align: center; padding: 3rem; color: #2a5070; font-size: 13px; }
+  .mini-bar-wrap { margin-top: 4px; height: 4px; background: rgba(0,0,0,0.4); border-radius: 2px; width: 100px; }
+  .mini-bar { height: 4px; border-radius: 2px; opacity: 0.7; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
 `
 
+// ── Helper: format nanoseconds ──────────────────────────────────────────────
+const fmtNs = (v) => {
+  if (v == null || isNaN(v)) return '—'
+  if (v < 1000) return `${v} ns`
+  if (v < 1_000_000) return `${(v / 1000).toFixed(1)} µs`
+  return `${(v / 1_000_000).toFixed(2)} ms`
+}
+
+// ── Enrich PlayerResult rows with GameRound timing data ─────────────────────
+//
+// Root cause: PlayerResult rows (from player_results table) do NOT carry
+// bfsTimeNs / dijkstraTimeNs — those live on GameRound (game_rounds table).
+// Each PlayerResult has a gameRoundId foreign key we use to fetch the
+// matching GameRound and merge its timing fields in.
+//
+// We deduplicate IDs and fire requests in parallel to minimise latency.
+async function enrichWithGameRounds(playerResultRows) {
+  const uniqueIds = [...new Set(
+    playerResultRows.map(r => r.gameRoundId).filter(id => id != null)
+  )]
+
+  // Fetch each GameRound once, keyed by id
+  const roundMap = {}
+  await Promise.all(
+    uniqueIds.map(async (id) => {
+      try {
+        // Calls GET /api/game-rounds/{id}  (adjust path to match your backend)
+        const round = await gameApi.getStats(id)
+        if (round) roundMap[id] = round
+      } catch {
+        // Leave undefined — affected rows will show '—' rather than crashing
+      }
+    })
+  )
+
+  // Merge bfsTimeNs, dijkstraTimeNs, minDiceThrows onto each result row
+  return playerResultRows.map(r => {
+    const round = roundMap[r.gameRoundId]
+    return {
+      ...r,
+      bfsTimeNs:      round?.bfsTimeNs      ?? null,
+      dijkstraTimeNs: round?.dijkstraTimeNs ?? null,
+      // prefer the authoritative value from GameRound; fall back to correctAnswer
+      minDiceThrows:  round?.minDiceThrows  ?? r.correctAnswer,
+    }
+  })
+}
+
+// ── 20-Rounds Modal Component ───────────────────────────────────────────────
+function RoundsModal({ onClose }) {
+  const [mode, setMode] = useState('individual')
+  const [players, setPlayers] = useState([])
+  const [selectedPlayer, setSelectedPlayer] = useState('')
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Fetch distinct player names on mount
+  useEffect(() => {
+    gameApi.getPlayers()           // ← now hits /api/game/players
+      .then(names => setPlayers(names))
+      .catch(() => {})
+  }, [])
+
+  // Fetch + enrich rows whenever mode or selectedPlayer changes
+  useEffect(() => {
+    if (mode === 'individual' && !selectedPlayer) {
+      setRows([])
+      setError(null)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    const fetchResults = mode === 'all'
+      ? gameApi.getRounds({ limit: 20 })
+      : gameApi.getRoundsByPlayer(selectedPlayer, { limit: 20 })
+
+    fetchResults
+      .then(data => enrichWithGameRounds(data))
+      .then(enriched => setRows(enriched))
+      .catch(() => {
+        setRows([])
+        setError('Failed to load rounds. Please try again.')
+      })
+      .finally(() => setLoading(false))
+  }, [mode, selectedPlayer])
+
+  // Stats — only average rows that actually have timing data
+  const rowsWithTiming = rows.filter(r => r.bfsTimeNs != null && r.dijkstraTimeNs != null)
+  const avgBfs  = rowsWithTiming.length
+    ? rowsWithTiming.reduce((s, r) => s + r.bfsTimeNs, 0) / rowsWithTiming.length
+    : null
+  const avgDijk = rowsWithTiming.length
+    ? rowsWithTiming.reduce((s, r) => s + r.dijkstraTimeNs, 0) / rowsWithTiming.length
+    : null
+  const wins = rows.filter(r => r.correct).length
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="modal-header">
+          <div className="modal-title">
+            <span className="modal-title-dot" />
+            20 Rounds — Algorithm Timing Table
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+
+          {/* Mode Toggle */}
+          <div className="sel-toggle">
+            <button
+              className={`sel-btn ${mode === 'individual' ? 'active' : ''}`}
+              onClick={() => setMode('individual')}
+            >
+              Individual
+            </button>
+            <div className="sel-divider" />
+            <button
+              className={`sel-btn ${mode === 'all' ? 'active' : ''}`}
+              onClick={() => setMode('all')}
+            >
+              All Players
+            </button>
+          </div>
+
+          {/* Player Select (Individual only) */}
+          {mode === 'individual' && (
+            <div className="player-select-wrap">
+              <div className="player-select-label">Select Player</div>
+              <select
+                className="player-select"
+                value={selectedPlayer}
+                onChange={e => setSelectedPlayer(e.target.value)}
+              >
+                <option value="">— Choose a player —</option>
+                {players.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Error state */}
+          {error && (
+            <div className="t-nodata" style={{ color: '#ff3355' }}>{error}</div>
+          )}
+
+          {/* Stats cards */}
+          {!error && rows.length > 0 && (
+            <div className="stats-row">
+              <div className="stat-card">
+                <div className="stat-label">Total Rounds</div>
+                <div className="stat-val blue">{rows.length}</div>
+                <div className="stat-sub">{wins} correct · {rows.length - wins} incorrect</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Avg BFS Time</div>
+                {/* Sourced from GameRound.bfsTimeNs via enrichWithGameRounds */}
+                <div className="stat-val green">{avgBfs != null ? fmtNs(Math.round(avgBfs)) : '—'}</div>
+                <div className="stat-sub">Breadth-First Search</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">Avg Dijkstra Time</div>
+                {/* Sourced from GameRound.dijkstraTimeNs via enrichWithGameRounds */}
+                <div className="stat-val purple">{avgDijk != null ? fmtNs(Math.round(avgDijk)) : '—'}</div>
+                <div className="stat-sub">Priority Queue</div>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          {loading ? (
+            <div className="t-nodata">
+              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⚙️</span>
+              {' '}Loading rounds...
+            </div>
+          ) : rows.length === 0 && !error ? (
+            <div className="t-nodata">
+              {mode === 'individual' && !selectedPlayer
+                ? 'Select a player to view their rounds'
+                : 'No rounds found'}
+            </div>
+          ) : !error && (
+            <div className="rounds-table-wrap">
+              <table className="rounds-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    {mode === 'all' && <th>Player</th>}
+                    <th>Board</th>
+                    <th>Min Throws</th>
+                    <th style={{ color: '#00ccff' }}>BFS Time</th>
+                    <th style={{ color: '#a050ff' }}>Dijkstra Time</th>
+                    <th>Faster</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => {
+                    const hasTiming = r.bfsTimeNs != null && r.dijkstraTimeNs != null
+                    const maxNs     = hasTiming ? Math.max(r.bfsTimeNs, r.dijkstraTimeNs) : 1
+                    const bfsW      = hasTiming ? Math.round(r.bfsTimeNs      / maxNs * 100) : 0
+                    const dijW      = hasTiming ? Math.round(r.dijkstraTimeNs / maxNs * 100) : 0
+                    const isBfsFaster = hasTiming && r.bfsTimeNs <= r.dijkstraTimeNs
+                    const diff      = Math.abs((r.playerAnswer ?? 0) - (r.correctAnswer ?? 0))
+                    const resultLabel = r.correct ? 'WIN' : diff === 1 ? 'DRAW' : 'LOSE'
+                    const resultClass = r.correct ? 't-win' : diff === 1 ? 't-draw' : 't-lose'
+
+                    return (
+                      <tr key={r.id || i}>
+                        <td><span className="t-round">#{i + 1}</span></td>
+                        {mode === 'all' && <td><span className="t-player">{r.playerName}</span></td>}
+                        <td>{r.boardSize}×{r.boardSize}</td>
+                        <td>
+                          <span className="t-throws">
+                            {r.minDiceThrows ?? r.correctAnswer ?? '—'}
+                          </span>
+                        </td>
+
+                        {/* BFS Time — from GameRound.bfsTimeNs */}
+                        <td>
+                          {hasTiming ? (
+                            <>
+                              <span className="t-bfs">{fmtNs(r.bfsTimeNs)}</span>
+                              <div className="mini-bar-wrap">
+                                <div className="mini-bar" style={{ width: `${bfsW}%`, background: '#00ccff' }} />
+                              </div>
+                            </>
+                          ) : (
+                            <span style={{ color: '#2a5070' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* Dijkstra Time — from GameRound.dijkstraTimeNs */}
+                        <td>
+                          {hasTiming ? (
+                            <>
+                              <span className="t-dijk">{fmtNs(r.dijkstraTimeNs)}</span>
+                              <div className="mini-bar-wrap">
+                                <div className="mini-bar" style={{ width: `${dijW}%`, background: '#a050ff' }} />
+                              </div>
+                            </>
+                          ) : (
+                            <span style={{ color: '#2a5070' }}>—</span>
+                          )}
+                        </td>
+
+                        <td>
+                          {hasTiming
+                            ? isBfsFaster
+                              ? <span className="badge-bfs">BFS</span>
+                              : <span className="badge-dijk">Dijkstra</span>
+                            : <span style={{ color: '#2a5070' }}>—</span>
+                          }
+                        </td>
+                        <td>
+                          <span className={resultClass}>{resultLabel}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main PlayScreen ─────────────────────────────────────────────────────────
 export default function PlayScreen({ gameData, playerName, elapsedSeconds, onSubmit, loading }) {
   const [selected, setSelected] = useState(null)
+  const [showRoundsModal, setShowRoundsModal] = useState(false)
 
   const handleSubmit = () => {
     if (selected === null) return
@@ -210,6 +653,9 @@ export default function PlayScreen({ gameData, playerName, elapsedSeconds, onSub
             </div>
           </div>
           <div className="topbar-right">
+            <button className="gen-btn" onClick={() => setShowRoundsModal(true)}>
+              📊 Generate 20 Rounds Table
+            </button>
             <div className="timer-box">
               <div className="timer-label">Time</div>
               <div className={`timer-val ${timerClass}`}>{formatTime(elapsedSeconds)}</div>
@@ -276,7 +722,7 @@ export default function PlayScreen({ gameData, playerName, elapsedSeconds, onSub
             >
               <span className="submit-btn-inner">
                 {loading
-                  ? <><span style={{ display:'inline-block', animation:'spin 1s linear infinite' }}>⚙️</span> Checking...</>
+                  ? <><span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⚙️</span> Checking...</>
                   : selected === null
                     ? '← Select an answer'
                     : '✓ Submit Answer'
@@ -311,7 +757,12 @@ export default function PlayScreen({ gameData, playerName, elapsedSeconds, onSub
             </div>
           </div>
         </div>
+
       </div>
+
+      {showRoundsModal && (
+        <RoundsModal onClose={() => setShowRoundsModal(false)} />
+      )}
     </div>
   )
 }

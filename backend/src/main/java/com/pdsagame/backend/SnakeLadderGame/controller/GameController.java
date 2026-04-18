@@ -1,6 +1,9 @@
 package com.pdsagame.backend.SnakeLadderGame.controller;
 
 import com.pdsagame.backend.SnakeLadderGame.dto.GameDtos.*;
+import com.pdsagame.backend.SnakeLadderGame.dto.RoundSummaryDto;
+import com.pdsagame.backend.SnakeLadderGame.model.PlayerResult;
+import com.pdsagame.backend.SnakeLadderGame.repository.PlayerResultRepository;
 import com.pdsagame.backend.SnakeLadderGame.service.SnakeLadderGameService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/snake")
@@ -18,24 +22,17 @@ import java.util.List;
 public class GameController {
 
     private final SnakeLadderGameService snakeLadderGameService;
+    private final PlayerResultRepository playerResultRepository; // ✅ Injected as a bean
 
-    /**
-     * POST /api/game/new
-     * Start a new game round.
-     */
     @PostMapping("/new")
     public ResponseEntity<ApiResponse<NewGameResponse>> newGame(
             @Valid @RequestBody NewGameRequest request) {
         log.info("New game request: boardSize={}", request.getBoardSize());
         NewGameResponse response = snakeLadderGameService.createNewGame(request.getBoardSize());
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.success("Game created successfully", response));
+                .body(ApiResponse.success("Game created successfully", response));
     }
 
-    /**
-     * POST /api/game/submit
-     * Submit a player's answer.
-     */
     @PostMapping("/submit")
     public ResponseEntity<ApiResponse<SubmitAnswerResponse>> submitAnswer(
             @Valid @RequestBody SubmitAnswerRequest request) {
@@ -44,32 +41,41 @@ public class GameController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /**
-     * GET /api/game/leaderboard
-     * Fetch top players with correct answers.
-     */
     @GetMapping("/leaderboard")
     public ResponseEntity<ApiResponse<List<LeaderboardEntry>>> getLeaderboard() {
         List<LeaderboardEntry> leaderboard = snakeLadderGameService.getLeaderboard();
         return ResponseEntity.ok(ApiResponse.success(leaderboard));
     }
 
-    /**
-     * GET /api/game/stats/{roundId}
-     * Get algorithm stats for a specific round.
-     */
     @GetMapping("/stats/{roundId}")
     public ResponseEntity<ApiResponse<AlgorithmStats>> getStats(@PathVariable Long roundId) {
         AlgorithmStats stats = snakeLadderGameService.getAlgorithmStats(roundId);
         return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
-    /**
-     * GET /api/game/health
-     * Health check endpoint.
-     */
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<String>> health() {
         return ResponseEntity.ok(ApiResponse.success("Snake & Ladder API is running!"));
+    }
+
+    // Add to GameController.java
+
+    @GetMapping("/rounds")
+    public ResponseEntity<ApiResponse<List<RoundSummaryDto>>> getAllRounds(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(ApiResponse.success(snakeLadderGameService.getAllRounds(limit)));
+    }
+
+    @GetMapping("/rounds/player/{playerName}")
+    public ResponseEntity<ApiResponse<List<RoundSummaryDto>>> getRoundsByPlayer(
+            @PathVariable String playerName,
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(ApiResponse.success(
+                snakeLadderGameService.getRoundsByPlayer(playerName, limit)));
+    }
+
+    @GetMapping("/players")
+    public ResponseEntity<ApiResponse<List<String>>> getPlayerNames() {
+        return ResponseEntity.ok(ApiResponse.success(snakeLadderGameService.getAllPlayerNames()));
     }
 }
