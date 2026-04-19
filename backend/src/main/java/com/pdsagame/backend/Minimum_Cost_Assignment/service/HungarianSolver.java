@@ -9,6 +9,8 @@ import java.util.List;
 @Component("hungarianSolver")
 public class HungarianSolver implements MinCostSolver {
 
+    // Implementation of the Hungarian algorithm for square matrices
+    // This is a standard O(n^3) implementation adapted for integer costs.
 
     @Override
     public SolveResult solve(int[][] cost) {

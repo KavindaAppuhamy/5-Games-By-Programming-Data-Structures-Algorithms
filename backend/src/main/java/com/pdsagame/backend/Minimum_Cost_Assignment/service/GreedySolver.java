@@ -30,6 +30,7 @@ public class GreedySolver implements MinCostSolver {
                 }
             }
             if (bestTask == -1) {
+                // no free task; pick any (shouldn't happen)
                 for (int task = 0; task < n; task++) {
                     if (!usedTasks.contains(task)) { bestTask = task; bestCost = costMatrix[agent][task]; break; }
                 }
