@@ -8,19 +8,19 @@ describe('mincost API client', () => {
 
   describe('solveMinCost', () => {
     it('should call fetch with correct URL and method', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              roundId: 'test-id',
-              n: 5,
-              totalCost: 500,
-              runtimeMs: 10,
-              algorithm: 'hungarian',
-              assignments: [],
-            }),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () =>
+                Promise.resolve({
+                  roundId: 'test-id',
+                  n: 5,
+                  totalCost: 500,
+                  runtimeMs: 10,
+                  algorithm: 'hungarian',
+                  assignments: [],
+                }),
+          })
       );
 
       const payload = {
@@ -31,21 +31,21 @@ describe('mincost API client', () => {
 
       await solveMinCost(payload);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/mincost/solve'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        })
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/mincost/solve'),
+          expect.objectContaining({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
       );
     });
 
     it('should send correct JSON payload', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ totalCost: 500 }),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ totalCost: 500 }),
+          })
       );
 
       const payload = {
@@ -58,7 +58,7 @@ describe('mincost API client', () => {
 
       await solveMinCost(payload);
 
-      const callArgs = global.fetch.mock.calls[0];
+      const callArgs = globalThis.fetch.mock.calls[0];
       const bodyString = callArgs[1].body;
       const parsedBody = JSON.parse(bodyString);
 
@@ -75,11 +75,11 @@ describe('mincost API client', () => {
         assignments: [{ agentIndex: 0, taskIndex: 0, cost: 75 }],
       };
 
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockResponse),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockResponse),
+          })
       );
 
       const result = await solveMinCost({ n: 10, algorithm: 'hungarian' });
@@ -88,44 +88,44 @@ describe('mincost API client', () => {
     });
 
     it('should throw error on non-ok response', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          text: () => Promise.resolve('Server error'),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: false,
+            text: () => Promise.resolve('Server error'),
+          })
       );
 
       await expect(solveMinCost({ n: 5 })).rejects.toThrow('Server error');
     });
 
     it('should throw error with default message on non-ok response without text', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          text: () => Promise.resolve(''),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: false,
+            text: () => Promise.resolve(''),
+          })
       );
 
       await expect(solveMinCost({ n: 5 })).rejects.toThrow('Request failed');
     });
 
     it('should handle network errors', async () => {
-      global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
+      globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
 
       await expect(solveMinCost({ n: 5 })).rejects.toThrow('Network error');
     });
 
     it('should construct URL with environment variable', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ totalCost: 500 }),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ totalCost: 500 }),
+          })
       );
 
       await solveMinCost({ n: 5 });
 
-      const url = global.fetch.mock.calls[0][0];
+      const url = globalThis.fetch.mock.calls[0][0];
       expect(url).toContain('api/mincost/solve');
     });
   });
@@ -141,50 +141,77 @@ describe('mincost API client', () => {
         totalPages: 1,
       };
 
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockData),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockData),
+          })
       );
 
       const result = await fetchHistory();
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('page=0&size=20')
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('page=0&size=20')
       );
       expect(result).toEqual(mockData);
     });
 
     it('should fetch history with custom pagination', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ content: [], totalElements: 0 }),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ content: [], totalElements: 0 }),
+          })
       );
 
       await fetchHistory(2, 10);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('page=2&size=10')
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('page=2&size=10')
       );
     });
 
+    it('should include playerName when provided', async () => {
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ content: [], totalElements: 0 }),
+          })
+      );
+
+      await fetchHistory(0, 20, 'Hari');
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('playerName=Hari')
+      );
+    });
+
+    it('should not include empty playerName', async () => {
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ content: [], totalElements: 0 }),
+          })
+      );
+
+      await fetchHistory(0, 20, '   ');
+
+      const url = globalThis.fetch.mock.calls[0][0];
+      expect(url).not.toContain('playerName=');
+    });
+
     it('should throw error on non-ok response', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: false,
+          })
       );
 
       await expect(fetchHistory()).rejects.toThrow('Failed to fetch history');
     });
 
     it('should handle network errors', async () => {
-      global.fetch = vi.fn(() =>
-        Promise.reject(new Error('Network unavailable'))
-      );
+      globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network unavailable')));
 
       await expect(fetchHistory()).rejects.toThrow('Network unavailable');
     });
@@ -192,23 +219,23 @@ describe('mincost API client', () => {
     it('should return paginated response with content', async () => {
       const mockData = {
         content: Array(5)
-          .fill(null)
-          .map((_, i) => ({
-            id: `id-${i}`,
-            n: 50 + i * 10,
-            totalCost: 1000 + i * 100,
-            runtimeMs: 10 + i * 5,
-          })),
+            .fill(null)
+            .map((_, i) => ({
+              id: `id-${i}`,
+              n: 50 + i * 10,
+              totalCost: 1000 + i * 100,
+              runtimeMs: 10 + i * 5,
+            })),
         totalElements: 5,
         totalPages: 1,
         pageable: { pageNumber: 0, pageSize: 20 },
       };
 
-      global.fetch = vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockData),
-        })
+      globalThis.fetch = vi.fn(() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockData),
+          })
       );
 
       const result = await fetchHistory(0, 20);
@@ -218,4 +245,3 @@ describe('mincost API client', () => {
     });
   });
 });
-

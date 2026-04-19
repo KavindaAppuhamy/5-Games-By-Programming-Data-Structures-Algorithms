@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MinCostControls from './MinCostControls';
 
@@ -49,14 +49,11 @@ describe('MinCostControls', () => {
 
     const randomNCheckbox = screen.getByRole('checkbox', { name: /Random N/i });
 
-    // First uncheck to show input
     await userEvent.click(randomNCheckbox);
     expect(screen.getByDisplayValue('50')).toBeInTheDocument();
 
-    // Then check again to hide input
     await userEvent.click(randomNCheckbox);
-    const inputs = screen.queryAllByDisplayValue('50');
-    expect(inputs.length).toBe(0); // Should not find N input
+    expect(screen.queryAllByDisplayValue('50')).toHaveLength(0);
   });
 
   it('algorithm dropdown has correct options', () => {
@@ -81,7 +78,7 @@ describe('MinCostControls', () => {
     expect(mockOnRun).toHaveBeenCalledTimes(1);
     expect(mockOnRun).toHaveBeenCalledWith(
       expect.objectContaining({
-        n: undefined, // random N
+        n: undefined,
         minCost: 20,
         maxCost: 200,
         algorithm: 'hungarian',
@@ -162,16 +159,22 @@ describe('MinCostControls', () => {
     render(<MinCostControls onRun={mockOnRun} />);
 
     const inputs = screen.getAllByRole('spinbutton');
-    // Assuming min cost is first spinbutton after N
+    const minCostInput = inputs[0];
+    const maxCostInput = inputs[1];
 
+    await userEvent.clear(minCostInput);
+    await userEvent.type(minCostInput, '30');
+    await userEvent.clear(maxCostInput);
+    await userEvent.type(maxCostInput, '300');
+
+    const runButton = screen.getByRole('button', { name: /Run/i });
     await userEvent.click(runButton);
 
     expect(mockOnRun).toHaveBeenCalledWith(
       expect.objectContaining({
-        minCost: 20,
-        maxCost: 200,
+        minCost: 30,
+        maxCost: 300,
       })
     );
   });
 });
-
