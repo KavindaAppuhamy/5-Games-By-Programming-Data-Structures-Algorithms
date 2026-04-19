@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import GameBoard from './GameBoard'
 import { gameApi } from '../services/api'
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, Cell
+} from 'recharts'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap');
@@ -40,7 +44,7 @@ const CSS = `
   .topbar-name { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600; color: #c8e0f0; }
   .topbar-sub  { font-size: 10px; color: #2a5070; letter-spacing: 0.08em; margin-top: 1px; }
 
-  .topbar-right { display: flex; align-items: center; gap: 20px; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
   .timer-box { text-align: right; }
   .timer-label { font-size: 9px; letter-spacing: 0.2em; color: #2a5070; text-transform: uppercase; }
   .timer-val { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; }
@@ -176,11 +180,10 @@ const CSS = `
   .config-col-label { font-size: 11px; color: #ff5566; margin-bottom: 6px; }
   .config-col-label.green { color: #00cc77; }
   .config-entry { font-size: 11px; color: #3a5070; display: flex; gap: 4px; margin-bottom: 3px; }
-  .config-from { }
   .config-arrow { color: #1a3050; }
   .config-to { color: #5a7a90; }
 
-  /* ── Generate Button ── */
+  /* ── Generate Buttons ── */
   .gen-btn {
     padding: 8px 16px;
     border-radius: 8px;
@@ -199,12 +202,30 @@ const CSS = `
     box-shadow: 0 0 16px rgba(0,200,255,0.2);
     transform: translateY(-1px);
   }
+  .gen-btn-chart {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer;
+    background: rgba(160,80,255,0.08);
+    border: 1px solid rgba(160,80,255,0.35);
+    color: #a050ff;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .gen-btn-chart:hover {
+    background: rgba(160,80,255,0.15);
+    box-shadow: 0 0 16px rgba(160,80,255,0.2);
+    transform: translateY(-1px);
+  }
 
   /* ── Modal Overlay ── */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(6px);
     z-index: 1000;
     display: flex; align-items: center; justify-content: center;
     padding: 1rem;
@@ -222,6 +243,22 @@ const CSS = `
     position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(0,180,255,0.4), transparent);
   }
+
+  /* ── Chart modal wider ── */
+  .modal-box-chart {
+    background: #060e1c;
+    border: 1px solid rgba(160,80,255,0.25);
+    border-radius: 20px;
+    width: 100%; max-width: 1100px;
+    max-height: 92vh; overflow-y: auto;
+    position: relative;
+  }
+  .modal-box-chart::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(160,80,255,0.5), transparent);
+  }
+
   .modal-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 1.25rem 1.5rem;
@@ -235,6 +272,10 @@ const CSS = `
   .modal-title-dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: #00ff88; box-shadow: 0 0 8px rgba(0,255,136,0.7);
+  }
+  .modal-title-dot-purple {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #a050ff; box-shadow: 0 0 8px rgba(160,80,255,0.7);
   }
   .modal-close {
     width: 32px; height: 32px; border-radius: 8px;
@@ -308,6 +349,26 @@ const CSS = `
   .stat-val.purple{ color: #a050ff; text-shadow: 0 0 10px rgba(160,80,255,0.3); }
   .stat-sub { font-size: 10px; color: #1a4060; margin-top: 3px; }
 
+  /* ── Chart containers ── */
+  .chart-section {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,80,160,0.18);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .chart-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: #c8e0f0; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chart-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1.25rem; margin-bottom: 1.25rem;
+  }
+  @media (max-width: 700px) { .chart-grid { grid-template-columns: 1fr; } }
+
   /* ── Rounds Table ── */
   .rounds-table-wrap { overflow-x: auto; }
   .rounds-table { width: 100%; border-collapse: collapse; }
@@ -351,44 +412,302 @@ const fmtNs = (v) => {
   return `${(v / 1_000_000).toFixed(2)} ms`
 }
 
+const nsToMs = (v) => {
+  if (v == null || isNaN(v)) return 0
+  return parseFloat((v / 1_000_000).toFixed(4))
+}
+
 // ── Enrich PlayerResult rows with GameRound timing data ─────────────────────
-//
-// Root cause: PlayerResult rows (from player_results table) do NOT carry
-// bfsTimeNs / dijkstraTimeNs — those live on GameRound (game_rounds table).
-// Each PlayerResult has a gameRoundId foreign key we use to fetch the
-// matching GameRound and merge its timing fields in.
-//
-// We deduplicate IDs and fire requests in parallel to minimise latency.
 async function enrichWithGameRounds(playerResultRows) {
   const uniqueIds = [...new Set(
     playerResultRows.map(r => r.gameRoundId).filter(id => id != null)
   )]
-
-  // Fetch each GameRound once, keyed by id
   const roundMap = {}
   await Promise.all(
     uniqueIds.map(async (id) => {
       try {
-        // Calls GET /api/game-rounds/{id}  (adjust path to match your backend)
         const round = await gameApi.getStats(id)
         if (round) roundMap[id] = round
-      } catch {
-        // Leave undefined — affected rows will show '—' rather than crashing
-      }
+      } catch { }
     })
   )
-
-  // Merge bfsTimeNs, dijkstraTimeNs, minDiceThrows onto each result row
   return playerResultRows.map(r => {
     const round = roundMap[r.gameRoundId]
     return {
       ...r,
       bfsTimeNs:      round?.bfsTimeNs      ?? null,
       dijkstraTimeNs: round?.dijkstraTimeNs ?? null,
-      // prefer the authoritative value from GameRound; fall back to correctAnswer
       minDiceThrows:  round?.minDiceThrows  ?? r.correctAnswer,
     }
   })
+}
+
+// ── Custom Tooltip for Line Chart ───────────────────────────────────────────
+const LineTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: '#0a1628', border: '1px solid rgba(0,120,255,0.3)',
+      borderRadius: 8, padding: '10px 14px', fontFamily: 'Space Mono, monospace', fontSize: 11
+    }}>
+      <p style={{ color: '#4a7090', marginBottom: 6 }}>Round #{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: p.color, margin: '2px 0' }}>
+          {p.name}: {p.value.toFixed(4)} ms
+        </p>
+      ))}
+    </div>
+  )
+}
+
+// ── Custom Tooltip for Bar Chart ────────────────────────────────────────────
+const BarTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: '#0a1628', border: '1px solid rgba(0,120,255,0.3)',
+      borderRadius: 8, padding: '10px 14px', fontFamily: 'Space Mono, monospace', fontSize: 11
+    }}>
+      <p style={{ color: '#4a7090', marginBottom: 6 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: p.fill, margin: '2px 0' }}>
+          {p.name}: {p.value.toFixed(4)} ms
+        </p>
+      ))}
+    </div>
+  )
+}
+
+// ── Charts Modal Component ──────────────────────────────────────────────────
+function ChartsModal({ onClose }) {
+  const [mode, setMode] = useState('individual')
+  const [players, setPlayers] = useState([])
+  const [selectedPlayer, setSelectedPlayer] = useState('')
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    gameApi.getPlayers()
+      .then(names => setPlayers([...names].sort((a, b) => a.localeCompare(b))))
+      .catch(() => setPlayers([]))
+  }, [])
+
+  useEffect(() => {
+    if (mode === 'individual' && !selectedPlayer) {
+      setRows([]); setError(null); return
+    }
+    setLoading(true); setError(null)
+    const fetch = mode === 'all'
+      ? gameApi.getRounds({ limit: 20 })
+      : gameApi.getRoundsByPlayer(selectedPlayer, { limit: 20 })
+    fetch
+      .then(data => enrichWithGameRounds(data))
+      .then(enriched => setRows(enriched))
+      .catch(() => { setRows([]); setError('Failed to load data. Please try again.') })
+      .finally(() => setLoading(false))
+  }, [mode, selectedPlayer])
+
+  // Build chart data
+  const lineData = rows
+    .filter(r => r.bfsTimeNs != null && r.dijkstraTimeNs != null)
+    .map((r, i) => ({
+      round: i + 1,
+      BFS: nsToMs(r.bfsTimeNs),
+      Dijkstra: nsToMs(r.dijkstraTimeNs),
+    }))
+
+  const avgBfs  = lineData.length ? lineData.reduce((s, r) => s + r.BFS, 0) / lineData.length : 0
+  const avgDijk = lineData.length ? lineData.reduce((s, r) => s + r.Dijkstra, 0) / lineData.length : 0
+
+  const barAvgData = [
+    { name: 'BFS', 'Avg Time (ms)': parseFloat(avgBfs.toFixed(4)) },
+    { name: 'Dijkstra', 'Avg Time (ms)': parseFloat(avgDijk.toFixed(4)) },
+  ]
+
+  // Min throws line data
+  const throwsData = rows.map((r, i) => ({
+    round: i + 1,
+    'Min Throws': r.minDiceThrows ?? r.correctAnswer ?? 0,
+  }))
+
+  // Result distribution
+  const wins  = rows.filter(r => r.correct).length
+  const draws = rows.filter(r => !r.correct && Math.abs((r.playerAnswer ?? 0) - (r.correctAnswer ?? 0)) === 1).length
+  const loses = rows.length - wins - draws
+  const distData = [
+    { name: 'WIN',  value: wins,  fill: '#00ff88' },
+    { name: 'DRAW', value: draws, fill: '#ffcc00' },
+    { name: 'LOSE', value: loses, fill: '#ff3355' },
+  ]
+
+  const showCharts = !loading && !error && lineData.length > 0
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box-chart" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="modal-header">
+          <div className="modal-title">
+            <span className="modal-title-dot-purple" />
+            20 Rounds — Algorithm Timing Charts
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+
+          {/* Mode Toggle */}
+          <div className="sel-toggle">
+            <button className={`sel-btn ${mode === 'individual' ? 'active' : ''}`} onClick={() => setMode('individual')}>
+              Individual
+            </button>
+            <div className="sel-divider" />
+            <button className={`sel-btn ${mode === 'all' ? 'active' : ''}`} onClick={() => setMode('all')}>
+              All Players
+            </button>
+          </div>
+
+          {/* Player Select */}
+          {mode === 'individual' && (
+            <div className="player-select-wrap">
+              <div className="player-select-label">Select Player</div>
+              <select className="player-select" value={selectedPlayer} onChange={e => setSelectedPlayer(e.target.value)}>
+                <option value="">— Choose a player —</option>
+                {players.map((p, i) => <option key={`${p}-${i}`} value={p}>{p}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && <div className="t-nodata" style={{ color: '#ff3355' }}>{error}</div>}
+
+          {/* Loading */}
+          {loading && (
+            <div className="t-nodata">
+              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⚙️</span>
+              {' '}Loading chart data...
+            </div>
+          )}
+
+          {/* Empty */}
+          {!loading && !error && lineData.length === 0 && (
+            <div className="t-nodata">
+              {mode === 'individual' && !selectedPlayer
+                ? 'Select a player to view their charts'
+                : 'No data found'}
+            </div>
+          )}
+
+          {/* ── CHARTS ── */}
+          {showCharts && (
+            <>
+              {/* Stats Summary */}
+              <div className="stats-row">
+                <div className="stat-card">
+                  <div className="stat-label">Total Rounds</div>
+                  <div className="stat-val blue">{rows.length}</div>
+                  <div className="stat-sub">{wins}W · {draws}D · {loses}L</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Avg BFS Time</div>
+                  <div className="stat-val green">{avgBfs.toFixed(4)} ms</div>
+                  <div className="stat-sub">Breadth-First Search</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Avg Dijkstra Time</div>
+                  <div className="stat-val purple">{avgDijk.toFixed(4)} ms</div>
+                  <div className="stat-sub">Priority Queue</div>
+                </div>
+              </div>
+
+              {/* Chart 1 — Runtime by Round (Line) */}
+              <div className="chart-section">
+                <div className="chart-title">📈 Runtime by Round (up to 20)</div>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={lineData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,80,160,0.2)" />
+                    <XAxis dataKey="round" stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 11, fontFamily: 'Space Mono' }} label={{ value: 'Round', position: 'insideBottomRight', offset: -5, fill: '#2a5070', fontSize: 10 }} />
+                    <YAxis stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 11, fontFamily: 'Space Mono' }} tickFormatter={v => `${v}ms`} />
+                    <Tooltip content={<LineTooltip />} />
+                    <Legend wrapperStyle={{ fontFamily: 'Space Mono', fontSize: 11, color: '#4a7090' }} />
+                    <Line type="monotone" dataKey="BFS" stroke="#00ccff" strokeWidth={2} dot={{ fill: '#00ccff', r: 3 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="Dijkstra" stroke="#a050ff" strokeWidth={2} dot={{ fill: '#a050ff', r: 3 }} activeDot={{ r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Chart 2 & 3 side by side */}
+              <div className="chart-grid">
+
+                {/* Average Runtime Bar Chart */}
+                <div className="chart-section" style={{ marginBottom: 0 }}>
+                  <div className="chart-title">⏱ Average Runtime by Algorithm</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={barAvgData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,80,160,0.2)" />
+                      <XAxis dataKey="name" stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 11, fontFamily: 'Space Mono' }} />
+                      <YAxis stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 11, fontFamily: 'Space Mono' }} tickFormatter={v => `${v}ms`} />
+                      <Tooltip content={<BarTooltip />} />
+                      <Legend wrapperStyle={{ fontFamily: 'Space Mono', fontSize: 11, color: '#4a7090' }} />
+                      // AFTER (fixed)
+                      <Bar dataKey="Avg Time (ms)" radius={[6, 6, 0, 0]}>
+                        {barAvgData.map((_, i) => (
+                          <Cell key={i} fill={i === 0 ? '#00ccff' : '#a050ff'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Min Throws per Round */}
+                <div className="chart-section" style={{ marginBottom: 0 }}>
+                  <div className="chart-title">🎲 Min Dice Throws by Round</div>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={throwsData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,80,160,0.2)" />
+                      <XAxis dataKey="round" stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 11, fontFamily: 'Space Mono' }} label={{ value: 'Round', position: 'insideBottomRight', offset: -5, fill: '#2a5070', fontSize: 10 }} />
+                      <YAxis stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 11, fontFamily: 'Space Mono' }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ background: '#0a1628', border: '1px solid rgba(0,120,255,0.3)', borderRadius: 8, fontFamily: 'Space Mono', fontSize: 11 }}
+                        labelStyle={{ color: '#4a7090' }}
+                        itemStyle={{ color: '#00ff88' }}
+                      />
+                      <Legend wrapperStyle={{ fontFamily: 'Space Mono', fontSize: 11, color: '#4a7090' }} />
+                      <Bar dataKey="Min Throws" fill="#00ff88" radius={[4, 4, 0, 0]} opacity={0.8} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Chart 4 — Win/Draw/Lose distribution */}
+              <div className="chart-section">
+                <div className="chart-title">🏆 Result Distribution</div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={distData} layout="vertical" margin={{ top: 5, right: 40, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,80,160,0.2)" horizontal={false} />
+                    <XAxis type="number" stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 11, fontFamily: 'Space Mono' }} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" stroke="#2a5070" tick={{ fill: '#4a7090', fontSize: 12, fontFamily: 'Space Mono', fontWeight: 700 }} width={40} />
+                    <Tooltip
+                      contentStyle={{ background: '#0a1628', border: '1px solid rgba(0,120,255,0.3)', borderRadius: 8, fontFamily: 'Space Mono', fontSize: 11 }}
+                      labelStyle={{ color: '#4a7090' }}
+                    />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                      {distData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── 20-Rounds Modal Component ───────────────────────────────────────────────
@@ -400,53 +719,38 @@ function RoundsModal({ onClose }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch distinct player names on mount
   useEffect(() => {
-    gameApi.getPlayers()           // ← now hits /api/game/players
-      .then(names => setPlayers(names))
-      .catch(() => {})
+    gameApi.getPlayers()
+      .then(names => {
+        const sorted = [...names].sort((a, b) => a.localeCompare(b))
+        setPlayers(sorted)
+      })
+      .catch(() => setPlayers([]))
   }, [])
 
-  // Fetch + enrich rows whenever mode or selectedPlayer changes
   useEffect(() => {
     if (mode === 'individual' && !selectedPlayer) {
-      setRows([])
-      setError(null)
-      return
+      setRows([]); setError(null); return
     }
-
-    setLoading(true)
-    setError(null)
-
+    setLoading(true); setError(null)
     const fetchResults = mode === 'all'
       ? gameApi.getRounds({ limit: 20 })
       : gameApi.getRoundsByPlayer(selectedPlayer, { limit: 20 })
-
     fetchResults
       .then(data => enrichWithGameRounds(data))
       .then(enriched => setRows(enriched))
-      .catch(() => {
-        setRows([])
-        setError('Failed to load rounds. Please try again.')
-      })
+      .catch(() => { setRows([]); setError('Failed to load rounds. Please try again.') })
       .finally(() => setLoading(false))
   }, [mode, selectedPlayer])
 
-  // Stats — only average rows that actually have timing data
   const rowsWithTiming = rows.filter(r => r.bfsTimeNs != null && r.dijkstraTimeNs != null)
-  const avgBfs  = rowsWithTiming.length
-    ? rowsWithTiming.reduce((s, r) => s + r.bfsTimeNs, 0) / rowsWithTiming.length
-    : null
-  const avgDijk = rowsWithTiming.length
-    ? rowsWithTiming.reduce((s, r) => s + r.dijkstraTimeNs, 0) / rowsWithTiming.length
-    : null
+  const avgBfs  = rowsWithTiming.length ? rowsWithTiming.reduce((s, r) => s + r.bfsTimeNs, 0) / rowsWithTiming.length : null
+  const avgDijk = rowsWithTiming.length ? rowsWithTiming.reduce((s, r) => s + r.dijkstraTimeNs, 0) / rowsWithTiming.length : null
   const wins = rows.filter(r => r.correct).length
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
         <div className="modal-header">
           <div className="modal-title">
             <span className="modal-title-dot" />
@@ -454,49 +758,22 @@ function RoundsModal({ onClose }) {
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
-
         <div className="modal-body">
-
-          {/* Mode Toggle */}
           <div className="sel-toggle">
-            <button
-              className={`sel-btn ${mode === 'individual' ? 'active' : ''}`}
-              onClick={() => setMode('individual')}
-            >
-              Individual
-            </button>
+            <button className={`sel-btn ${mode === 'individual' ? 'active' : ''}`} onClick={() => setMode('individual')}>Individual</button>
             <div className="sel-divider" />
-            <button
-              className={`sel-btn ${mode === 'all' ? 'active' : ''}`}
-              onClick={() => setMode('all')}
-            >
-              All Players
-            </button>
+            <button className={`sel-btn ${mode === 'all' ? 'active' : ''}`} onClick={() => setMode('all')}>All Players</button>
           </div>
-
-          {/* Player Select (Individual only) */}
           {mode === 'individual' && (
             <div className="player-select-wrap">
               <div className="player-select-label">Select Player</div>
-              <select
-                className="player-select"
-                value={selectedPlayer}
-                onChange={e => setSelectedPlayer(e.target.value)}
-              >
+              <select className="player-select" value={selectedPlayer} onChange={e => setSelectedPlayer(e.target.value)}>
                 <option value="">— Choose a player —</option>
-                {players.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
+                {players.map((p, i) => <option key={`${p}-${i}`} value={p}>{p}</option>)}
               </select>
             </div>
           )}
-
-          {/* Error state */}
-          {error && (
-            <div className="t-nodata" style={{ color: '#ff3355' }}>{error}</div>
-          )}
-
-          {/* Stats cards */}
+          {error && <div className="t-nodata" style={{ color: '#ff3355' }}>{error}</div>}
           {!error && rows.length > 0 && (
             <div className="stats-row">
               <div className="stat-card">
@@ -506,30 +783,23 @@ function RoundsModal({ onClose }) {
               </div>
               <div className="stat-card">
                 <div className="stat-label">Avg BFS Time</div>
-                {/* Sourced from GameRound.bfsTimeNs via enrichWithGameRounds */}
                 <div className="stat-val green">{avgBfs != null ? fmtNs(Math.round(avgBfs)) : '—'}</div>
                 <div className="stat-sub">Breadth-First Search</div>
               </div>
               <div className="stat-card">
                 <div className="stat-label">Avg Dijkstra Time</div>
-                {/* Sourced from GameRound.dijkstraTimeNs via enrichWithGameRounds */}
                 <div className="stat-val purple">{avgDijk != null ? fmtNs(Math.round(avgDijk)) : '—'}</div>
                 <div className="stat-sub">Priority Queue</div>
               </div>
             </div>
           )}
-
-          {/* Table */}
           {loading ? (
             <div className="t-nodata">
-              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⚙️</span>
-              {' '}Loading rounds...
+              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⚙️</span>{' '}Loading rounds...
             </div>
           ) : rows.length === 0 && !error ? (
             <div className="t-nodata">
-              {mode === 'individual' && !selectedPlayer
-                ? 'Select a player to view their rounds'
-                : 'No rounds found'}
+              {mode === 'individual' && !selectedPlayer ? 'Select a player to view their rounds' : 'No rounds found'}
             </div>
           ) : !error && (
             <div className="rounds-table-wrap">
@@ -549,64 +819,29 @@ function RoundsModal({ onClose }) {
                 <tbody>
                   {rows.map((r, i) => {
                     const hasTiming = r.bfsTimeNs != null && r.dijkstraTimeNs != null
-                    const maxNs     = hasTiming ? Math.max(r.bfsTimeNs, r.dijkstraTimeNs) : 1
-                    const bfsW      = hasTiming ? Math.round(r.bfsTimeNs      / maxNs * 100) : 0
-                    const dijW      = hasTiming ? Math.round(r.dijkstraTimeNs / maxNs * 100) : 0
+                    const maxNs = hasTiming ? Math.max(r.bfsTimeNs, r.dijkstraTimeNs) : 1
+                    const bfsW  = hasTiming ? Math.round(r.bfsTimeNs / maxNs * 100) : 0
+                    const dijW  = hasTiming ? Math.round(r.dijkstraTimeNs / maxNs * 100) : 0
                     const isBfsFaster = hasTiming && r.bfsTimeNs <= r.dijkstraTimeNs
-                    const diff      = Math.abs((r.playerAnswer ?? 0) - (r.correctAnswer ?? 0))
+                    const diff = Math.abs((r.playerAnswer ?? 0) - (r.correctAnswer ?? 0))
                     const resultLabel = r.correct ? 'WIN' : diff === 1 ? 'DRAW' : 'LOSE'
                     const resultClass = r.correct ? 't-win' : diff === 1 ? 't-draw' : 't-lose'
-
                     return (
                       <tr key={r.id || i}>
                         <td><span className="t-round">#{i + 1}</span></td>
                         {mode === 'all' && <td><span className="t-player">{r.playerName}</span></td>}
                         <td>{r.boardSize}×{r.boardSize}</td>
+                        <td><span className="t-throws">{r.minDiceThrows ?? r.correctAnswer ?? '—'}</span></td>
                         <td>
-                          <span className="t-throws">
-                            {r.minDiceThrows ?? r.correctAnswer ?? '—'}
-                          </span>
-                        </td>
-
-                        {/* BFS Time — from GameRound.bfsTimeNs */}
-                        <td>
-                          {hasTiming ? (
-                            <>
-                              <span className="t-bfs">{fmtNs(r.bfsTimeNs)}</span>
-                              <div className="mini-bar-wrap">
-                                <div className="mini-bar" style={{ width: `${bfsW}%`, background: '#00ccff' }} />
-                              </div>
-                            </>
-                          ) : (
-                            <span style={{ color: '#2a5070' }}>—</span>
-                          )}
-                        </td>
-
-                        {/* Dijkstra Time — from GameRound.dijkstraTimeNs */}
-                        <td>
-                          {hasTiming ? (
-                            <>
-                              <span className="t-dijk">{fmtNs(r.dijkstraTimeNs)}</span>
-                              <div className="mini-bar-wrap">
-                                <div className="mini-bar" style={{ width: `${dijW}%`, background: '#a050ff' }} />
-                              </div>
-                            </>
-                          ) : (
-                            <span style={{ color: '#2a5070' }}>—</span>
-                          )}
-                        </td>
-
-                        <td>
-                          {hasTiming
-                            ? isBfsFaster
-                              ? <span className="badge-bfs">BFS</span>
-                              : <span className="badge-dijk">Dijkstra</span>
-                            : <span style={{ color: '#2a5070' }}>—</span>
-                          }
+                          {hasTiming ? (<><span className="t-bfs">{fmtNs(r.bfsTimeNs)}</span><div className="mini-bar-wrap"><div className="mini-bar" style={{ width: `${bfsW}%`, background: '#00ccff' }} /></div></>) : <span style={{ color: '#2a5070' }}>—</span>}
                         </td>
                         <td>
-                          <span className={resultClass}>{resultLabel}</span>
+                          {hasTiming ? (<><span className="t-dijk">{fmtNs(r.dijkstraTimeNs)}</span><div className="mini-bar-wrap"><div className="mini-bar" style={{ width: `${dijW}%`, background: '#a050ff' }} /></div></>) : <span style={{ color: '#2a5070' }}>—</span>}
                         </td>
+                        <td>
+                          {hasTiming ? isBfsFaster ? <span className="badge-bfs">BFS</span> : <span className="badge-dijk">Dijkstra</span> : <span style={{ color: '#2a5070' }}>—</span>}
+                        </td>
+                        <td><span className={resultClass}>{resultLabel}</span></td>
                       </tr>
                     )
                   })}
@@ -614,7 +849,6 @@ function RoundsModal({ onClose }) {
               </table>
             </div>
           )}
-
         </div>
       </div>
     </div>
@@ -625,6 +859,7 @@ function RoundsModal({ onClose }) {
 export default function PlayScreen({ gameData, playerName, elapsedSeconds, onSubmit, loading }) {
   const [selected, setSelected] = useState(null)
   const [showRoundsModal, setShowRoundsModal] = useState(false)
+  const [showChartsModal, setShowChartsModal] = useState(false)
 
   const handleSubmit = () => {
     if (selected === null) return
@@ -655,6 +890,9 @@ export default function PlayScreen({ gameData, playerName, elapsedSeconds, onSub
           <div className="topbar-right">
             <button className="gen-btn" onClick={() => setShowRoundsModal(true)}>
               📊 Generate 20 Rounds Table
+            </button>
+            <button className="gen-btn-chart" onClick={() => setShowChartsModal(true)}>
+              📈 Generate 20 Rounds Charts
             </button>
             <div className="timer-box">
               <div className="timer-label">Time</div>
@@ -760,9 +998,8 @@ export default function PlayScreen({ gameData, playerName, elapsedSeconds, onSub
 
       </div>
 
-      {showRoundsModal && (
-        <RoundsModal onClose={() => setShowRoundsModal(false)} />
-      )}
+      {showRoundsModal && <RoundsModal onClose={() => setShowRoundsModal(false)} />}
+      {showChartsModal && <ChartsModal onClose={() => setShowChartsModal(false)} />}
     </div>
   )
 }

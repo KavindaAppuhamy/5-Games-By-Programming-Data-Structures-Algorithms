@@ -27,7 +27,7 @@ public interface PlayerResultRepository extends JpaRepository<PlayerResult, Long
         FROM GameRound gr
         JOIN PlayerResult pr ON gr.id = pr.gameRoundId
         JOIN Player p        ON pr.playerId = p.id
-        WHERE LOWER(p.name) = LOWER(:playerName)
+        WHERE p.name = :playerName
         ORDER BY gr.createdAt DESC
         """)
     List<RoundSummaryDto> findRoundsByPlayerName(@Param("playerName") String playerName);

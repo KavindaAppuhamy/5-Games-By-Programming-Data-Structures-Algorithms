@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Collator;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.*;
@@ -38,7 +39,7 @@ public class SnakeLadderGameService {
 
 
     private Player findOrCreatePlayer(String name) {
-        return playerRepository.findByNameIgnoreCase(name.trim())
+        return playerRepository.findByName(name.trim())
                 .orElseGet(() -> playerRepository.save(
                         Player.builder().name(name.trim()).build()
                 ));
@@ -273,10 +274,12 @@ public class SnakeLadderGameService {
 
     // All player names (for frontend dropdown)
     public List<String> getAllPlayerNames() {
+        Collator collator = Collator.getInstance();
+        collator.setStrength(Collator.SECONDARY); // case-insensitive sort ORDER only
         return playerRepository.findAll()
                 .stream()
-                .map(Player::getName)
-                .sorted()
+                .map(Player::getName)   // preserves exact casing: "Kavinda", "KAvinda"
+                .sorted(collator)       // sorts them together alphabetically
                 .collect(Collectors.toList());
     }
 }
