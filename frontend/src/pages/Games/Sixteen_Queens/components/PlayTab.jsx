@@ -1,6 +1,6 @@
 import styles from "../style/QueensCSS.module.css";
 import {useState, useEffect, useCallback, useRef, useMemo} from "react";
-import {FiRefreshCw, FiSettings, FiSun} from "react-icons/fi";
+import {FiEye, FiEyeOff, FiRefreshCw, FiSettings, FiSun} from "react-icons/fi";
 import { GiChessQueen } from "react-icons/gi";
 import toast from "react-hot-toast";
 import Chessboard from "./Chessboard";
@@ -28,6 +28,7 @@ export default function PlayTab() {
     const [solutions,   setSolutions]   = useState([]);
     const [loadingSols, setLoadingSols] = useState(false);
     const [submitting,  setSubmitting]  = useState(false);
+    const [showSolutions, setShowSolutions] = useState(false);
 
     const [shake, setShake] = useState(false);
 
@@ -213,56 +214,75 @@ export default function PlayTab() {
             </div>
 
             {/* Solutions list */}
-            <div className="bg-gray-900 border border-gray-700/60 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest">
-                        Solutions ({claimed} found / {solutions.length} loaded)
-                    </h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest">
+                    Solutions ({claimed} found / {solutions.length} loaded)
+                </h2>
+
+                <div className="flex items-center gap-2">
+
+                    <button
+                        onClick={() => setShowSolutions(prev => !prev)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm transition cursor-pointer"
+                    >
+                        {showSolutions ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                        {showSolutions ? "Hide" : "Show"}
+                    </button>
+
                     <button
                         onClick={fetchSolutions}
                         disabled={loadingSols}
-                        className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm transition cursor-pointer disabled:opacity-50"
                     >
-                        <FiRefreshCw size={12} className={loadingSols ? "animate-spin" : ""} />
+                        <FiRefreshCw
+                            size={14}
+                            className={loadingSols ? "animate-spin" : ""}
+                        />
                         Refresh
                     </button>
+
                 </div>
-
-                {solutions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 text-gray-500">
-                        <div className="p-4 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/30 mb-4 animate-pulse">
-                            <FiSettings size={28} className="text-white" />
-                        </div>
-
-                        <p className="text-lg font-medium text-white">
-                            No solutions loaded
-                        </p>
-
-                        <p className="text-sm mt-2 text-gray-400 text-center max-w-sm">
-                            Go to the Solver tab and run the algorithm to generate solutions.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                        {solutions.map((s, i) => (
-                            <div
-                                key={s.id}
-                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm
-                                ${s.claimed
-                                    ? "bg-emerald-900/20 border-emerald-700/40"
-                                    : "bg-gray-800/50 border-gray-700/40"
-                                }`}
-                            >
-                                <span className="text-xs text-gray-500 w-7 shrink-0">#{i + 1}</span>
-                                <span className="font-mono text-xs text-gray-400 flex-1 truncate">[{s.solutionKey}]</span>
-                                {s.claimed
-                                    ? <span className="text-xs text-emerald-400 shrink-0">✓ {s.claimedBy}</span>
-                                    : <span className="text-xs text-gray-600 shrink-0">not found</span>}
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
+
+            {!showSolutions ? (
+                <div className="text-center py-10 text-gray-500 text-sm">
+                    Solutions are hidden
+                </div>
+            ) : solutions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 text-gray-500">
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/30 mb-4 animate-pulse">
+                        <FiSettings size={28} className="text-white" />
+                    </div>
+
+                    <p className="text-lg font-medium text-white">
+                        No solutions loaded
+                    </p>
+
+                    <p className="text-sm mt-2 text-gray-400 text-center max-w-sm">
+                        Go to the Solver tab and run the algorithm to generate solutions.
+                    </p>
+                </div>
+            ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {solutions.map((s, i) => (
+                        <div
+                            key={s.id}
+                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm
+                ${s.claimed
+                                ? "bg-emerald-900/20 border-emerald-700/40"
+                                : "bg-gray-800/50 border-gray-700/40"
+                            }`}
+                        >
+                            <span className="text-xs text-gray-500 w-7 shrink-0">#{i + 1}</span>
+                            <span className="font-mono text-xs text-gray-400 flex-1 truncate">[{s.solutionKey}]</span>
+                            {s.claimed
+                                ? <span className="text-xs text-emerald-400 shrink-0">✓ {s.claimedBy}</span>
+                                : <span className="text-xs text-gray-600 shrink-0">not found</span>}
+                        </div>
+                    ))}
+                </div>
+            )}
+
         </div>
     );
 }
