@@ -8,7 +8,7 @@ describe('mincost API client', () => {
 
   describe('solveMinCost', () => {
     it('should call fetch with correct URL and method', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () =>
@@ -31,7 +31,7 @@ describe('mincost API client', () => {
 
       await solveMinCost(payload);
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
           expect.stringContaining('/api/mincost/solve'),
           expect.objectContaining({
             method: 'POST',
@@ -41,7 +41,7 @@ describe('mincost API client', () => {
     });
 
     it('should send correct JSON payload', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ totalCost: 500 }),
@@ -58,7 +58,7 @@ describe('mincost API client', () => {
 
       await solveMinCost(payload);
 
-      const callArgs = global.fetch.mock.calls[0];
+      const callArgs = globalThis.fetch.mock.calls[0];
       const bodyString = callArgs[1].body;
       const parsedBody = JSON.parse(bodyString);
 
@@ -75,7 +75,7 @@ describe('mincost API client', () => {
         assignments: [{ agentIndex: 0, taskIndex: 0, cost: 75 }],
       };
 
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockResponse),
@@ -88,7 +88,7 @@ describe('mincost API client', () => {
     });
 
     it('should throw error on non-ok response', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: false,
             text: () => Promise.resolve('Server error'),
@@ -99,7 +99,7 @@ describe('mincost API client', () => {
     });
 
     it('should throw error with default message on non-ok response without text', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: false,
             text: () => Promise.resolve(''),
@@ -110,13 +110,13 @@ describe('mincost API client', () => {
     });
 
     it('should handle network errors', async () => {
-      global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
+      globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
 
       await expect(solveMinCost({ n: 5 })).rejects.toThrow('Network error');
     });
 
     it('should construct URL with environment variable', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ totalCost: 500 }),
@@ -125,7 +125,7 @@ describe('mincost API client', () => {
 
       await solveMinCost({ n: 5 });
 
-      const url = global.fetch.mock.calls[0][0];
+      const url = globalThis.fetch.mock.calls[0][0];
       expect(url).toContain('api/mincost/solve');
     });
   });
@@ -141,7 +141,7 @@ describe('mincost API client', () => {
         totalPages: 1,
       };
 
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockData),
@@ -150,14 +150,14 @@ describe('mincost API client', () => {
 
       const result = await fetchHistory();
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
           expect.stringContaining('page=0&size=20')
       );
       expect(result).toEqual(mockData);
     });
 
     it('should fetch history with custom pagination', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ content: [], totalElements: 0 }),
@@ -166,13 +166,13 @@ describe('mincost API client', () => {
 
       await fetchHistory(2, 10);
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
           expect.stringContaining('page=2&size=10')
       );
     });
 
     it('should include playerName when provided', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ content: [], totalElements: 0 }),
@@ -181,13 +181,13 @@ describe('mincost API client', () => {
 
       await fetchHistory(0, 20, 'Hari');
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
           expect.stringContaining('playerName=Hari')
       );
     });
 
     it('should not include empty playerName', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ content: [], totalElements: 0 }),
@@ -196,12 +196,12 @@ describe('mincost API client', () => {
 
       await fetchHistory(0, 20, '   ');
 
-      const url = global.fetch.mock.calls[0][0];
+      const url = globalThis.fetch.mock.calls[0][0];
       expect(url).not.toContain('playerName=');
     });
 
     it('should throw error on non-ok response', async () => {
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: false,
           })
@@ -211,7 +211,7 @@ describe('mincost API client', () => {
     });
 
     it('should handle network errors', async () => {
-      global.fetch = vi.fn(() => Promise.reject(new Error('Network unavailable')));
+      globalThis.fetch = vi.fn(() => Promise.reject(new Error('Network unavailable')));
 
       await expect(fetchHistory()).rejects.toThrow('Network unavailable');
     });
@@ -231,7 +231,7 @@ describe('mincost API client', () => {
         pageable: { pageNumber: 0, pageSize: 20 },
       };
 
-      global.fetch = vi.fn(() =>
+      globalThis.fetch = vi.fn(() =>
           Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockData),
