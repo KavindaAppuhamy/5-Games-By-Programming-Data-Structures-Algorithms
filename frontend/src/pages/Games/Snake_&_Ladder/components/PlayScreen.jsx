@@ -340,77 +340,64 @@ const nsToMs = (v) => {
   return parseFloat((v / 1_000_000).toFixed(4))
 }
 
-// ── Throttled sequential batch runner ────────────────────────────────────────
-// Runs asyncFn on each item, batchSize at a time, with a delay between batches.
-// This avoids overwhelming the server with N simultaneous requests.
-async function runBatched(items, asyncFn, batchSize = 3, delayMs = 150) {
-  const results = []
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize)
-    const batchResults = await Promise.allSettled(batch.map(asyncFn))
-    results.push(...batchResults)
-    if (i + batchSize < items.length) {
-      await new Promise(res => setTimeout(res, delayMs))
-    }
-  }
-  return results
+// ── FIX 1: Fully parallel fetch for all players ────────────────────────────
+// Old code used batched sequential fetching with delays (3 at a time, 200ms gap).
+// New code fires ALL player requests simultaneously then waits for all to settle.
+async function fetchAllPlayersRounds(players, limitPerPlayer = 20) {
+  const results = await Promise.allSettled(
+    players.map(async (player) => {
+      const data = await gameApi.getRoundsByPlayer(player, { limit: limitPerPlayer })
+      return (data || []).map(r => ({ ...r, playerName: r.playerName ?? player }))
+    })
+  )
+  const allRows = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+  allRows.sort((a, b) => (a.id > b.id ? -1 : a.id < b.id ? 1 : 0))
+  return allRows
 }
 
-// ── Enrich rows with GameRound timing — batched ───────────────────────────────
-async function enrichWithGameRounds(playerResultRows, onProgress) {
+// ── FIX 2: Parallel enrichment — fire all gameRound fetches at once ────────
+// Old code fetched gameRound details in batches of 4 with 100ms delays.
+// New code fires all unique IDs in parallel and resolves in one pass.
+// FIX 3: Skip enrichment entirely if the base rows already carry timing data.
+async function enrichWithGameRounds(playerResultRows) {
+  // If the API already returns timing fields, skip the extra fetch entirely.
+  const needsEnrich = playerResultRows.some(
+    r => r.gameRoundId != null && r.bfsTimeNs == null && r.dijkstraTimeNs == null
+  )
+  if (!needsEnrich) return playerResultRows
+
   const uniqueIds = [...new Set(
     playerResultRows.map(r => r.gameRoundId).filter(id => id != null)
   )]
   if (uniqueIds.length === 0) return playerResultRows
 
-  const roundMap = {}
-  let done = 0
+  // Fire all requests in parallel
+  const settled = await Promise.allSettled(
+    uniqueIds.map(id => gameApi.getStats(id).then(round => ({ id, round })))
+  )
 
-  await runBatched(uniqueIds, async (id) => {
-    try {
-      const round = await gameApi.getStats(id)
-      if (round) roundMap[id] = round
-    } catch { /* ignore individual failures */ }
-    done++
-    onProgress?.(done, uniqueIds.length)
-  }, 4, 100)
+  const roundMap = {}
+  for (const result of settled) {
+    if (result.status === 'fulfilled' && result.value.round) {
+      roundMap[result.value.id] = result.value.round
+    }
+  }
 
   return playerResultRows.map(r => {
     const round = roundMap[r.gameRoundId]
     return {
       ...r,
-      bfsTimeNs:      round?.bfsTimeNs      ?? null,
-      dijkstraTimeNs: round?.dijkstraTimeNs ?? null,
+      bfsTimeNs:      round?.bfsTimeNs      ?? r.bfsTimeNs      ?? null,
+      dijkstraTimeNs: round?.dijkstraTimeNs ?? r.dijkstraTimeNs ?? null,
       minDiceThrows:  round?.minDiceThrows  ?? r.correctAnswer,
     }
   })
 }
 
-// ── Fetch all players' rounds — 3 players at a time, 200ms gap between batches
-async function fetchAllPlayersRounds(players, limitPerPlayer = 20, onProgress) {
-  let done = 0
-  const allRows = []
-
-  await runBatched(players, async (player) => {
-    try {
-      const data = await gameApi.getRoundsByPlayer(player, { limit: limitPerPlayer })
-      const tagged = (data || []).map(r => ({ ...r, playerName: r.playerName ?? player }))
-      allRows.push(...tagged)
-    } catch { /* skip this player silently */ }
-    done++
-    onProgress?.(done, players.length)
-  }, 3, 200)
-
-  // Sort most-recent first (numeric or string ids both work)
-  allRows.sort((a, b) => (a.id > b.id ? -1 : a.id < b.id ? 1 : 0))
-  return allRows
-}
-
 const PAGE_SIZE = 20
 
 // ── Progress bar component ────────────────────────────────────────────────────
-function ProgressLoader({ label, done, total }) {
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+function ProgressLoader({ label }) {
   return (
     <div className="load-progress-wrap">
       <div className="load-progress-label">
@@ -418,9 +405,16 @@ function ProgressLoader({ label, done, total }) {
         {label}
       </div>
       <div className="load-progress-bar-bg">
-        <div className="load-progress-bar" style={{ width: `${pct}%` }} />
+        {/* Indeterminate animation when total is unknown */}
+        <div className="load-progress-bar" style={{ width: '60%', animation: 'indeterminate 1.4s ease-in-out infinite' }} />
       </div>
-      <div className="load-progress-sub">{done} / {total} fetched ({pct}%)</div>
+      <style>{`
+        @keyframes indeterminate {
+          0%   { margin-left: -20%; width: 20%; }
+          50%  { margin-left: 30%; width: 50%; }
+          100% { margin-left: 110%; width: 20%; }
+        }
+      `}</style>
     </div>
   )
 }
@@ -463,13 +457,16 @@ const BarTooltip = ({ active, payload, label }) => {
   )
 }
 
-// ── Shared data-loading hook (used by both modals) ────────────────────────────
+// ── FIX 4: Unified data-loading hook — two phases, fully parallel ─────────
+// Old hook tracked done/total progress across slow sequential batches.
+// New hook fires Phase 1 (base rows) and Phase 2 (enrichment) back-to-back,
+// each fully parallel, so total wall-clock time ≈ max(single slowest request).
 function useRoundData(mode, selectedPlayer, players) {
-  const [allRows, setAllRows]   = useState([])
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState(null)
-  const [progress, setProgress] = useState({ done: 0, total: 0, phase: '' })
-  const cancelRef               = useRef(false)
+  const [allRows, setAllRows] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState(null)
+  const [phase, setPhase]     = useState('')
+  const cancelRef             = useRef(false)
 
   useEffect(() => {
     if (mode === 'individual' && !selectedPlayer) { setAllRows([]); setError(null); return }
@@ -479,34 +476,27 @@ function useRoundData(mode, selectedPlayer, players) {
     setLoading(true)
     setError(null)
     setAllRows([])
-    setProgress({ done: 0, total: 0, phase: '' })
 
     const run = async () => {
       try {
         let baseRows = []
 
         if (mode === 'all') {
-          // Phase 1 — fetch per-player rounds sequentially
-          setProgress({ done: 0, total: players.length, phase: 'Fetching player rounds…' })
-          baseRows = await fetchAllPlayersRounds(players, 20, (done, total) => {
-            if (!cancelRef.current) setProgress({ done, total, phase: 'Fetching player rounds…' })
-          })
+          setPhase('Fetching all players…')
+          // FIX: fully parallel — all players at once
+          baseRows = await fetchAllPlayersRounds(players, 20)
         } else {
-          setProgress({ done: 0, total: 1, phase: 'Fetching rounds…' })
-          const data = await gameApi.getRoundsByPlayer(selectedPlayer, { limit: 200 })
+          setPhase('Fetching rounds…')
+          // FIX: only fetch 20 rows, not 200 — we only ever display 20
+          const data = await gameApi.getRoundsByPlayer(selectedPlayer, { limit: 20 })
           baseRows = (data || []).map(r => ({ ...r, playerName: r.playerName ?? selectedPlayer }))
-          if (!cancelRef.current) setProgress({ done: 1, total: 1, phase: 'Fetching rounds…' })
         }
 
         if (cancelRef.current) return
 
-        // Phase 2 — enrich with timing data (batched)
-        const uniqueIds = [...new Set(baseRows.map(r => r.gameRoundId).filter(Boolean))]
-        if (!cancelRef.current) setProgress({ done: 0, total: uniqueIds.length, phase: 'Loading timing data…' })
-
-        const enriched = await enrichWithGameRounds(baseRows, (done, total) => {
-          if (!cancelRef.current) setProgress({ done, total, phase: 'Loading timing data…' })
-        })
+        setPhase('Loading timing data…')
+        // FIX: fully parallel enrichment, skipped when timing already present
+        const enriched = await enrichWithGameRounds(baseRows)
 
         if (!cancelRef.current) setAllRows(enriched)
       } catch {
@@ -517,11 +507,10 @@ function useRoundData(mode, selectedPlayer, players) {
     }
 
     run()
-    // Cancel in-flight fetch if deps change (mode switch, player change, unmount)
     return () => { cancelRef.current = true }
   }, [mode, selectedPlayer, players])
 
-  return { allRows, loading, error, progress }
+  return { allRows, loading, error, phase }
 }
 
 // ── Charts Modal ──────────────────────────────────────────────────────────────
@@ -538,9 +527,8 @@ function ChartsModal({ onClose }) {
       .finally(() => setPlayersReady(true))
   }, [])
 
-  const { allRows: rows, loading, error, progress } = useRoundData(mode, selectedPlayer, players)
+  const { allRows: rows, loading, error, phase } = useRoundData(mode, selectedPlayer, players)
 
-  // Stats over ALL loaded rows
   const timedRows  = rows.filter(r => r.bfsTimeNs != null && r.dijkstraTimeNs != null)
   const avgBfs     = timedRows.length ? timedRows.reduce((s, r) => s + nsToMs(r.bfsTimeNs), 0) / timedRows.length : 0
   const avgDijk    = timedRows.length ? timedRows.reduce((s, r) => s + nsToMs(r.dijkstraTimeNs), 0) / timedRows.length : 0
@@ -548,7 +536,6 @@ function ChartsModal({ onClose }) {
   const draws      = rows.filter(r => !r.correct && Math.abs((r.playerAnswer ?? 0) - (r.correctAnswer ?? 0)) === 1).length
   const loses      = rows.length - wins - draws
 
-  // Charts use first 20 timed rows for line chart, all rows for bar/dist
   const chartSlice = timedRows.slice(0, 20)
   const lineData   = chartSlice.map((r, i) => ({ round: i + 1, BFS: nsToMs(r.bfsTimeNs), Dijkstra: nsToMs(r.dijkstraTimeNs) }))
   const barAvgData = [
@@ -590,7 +577,7 @@ function ChartsModal({ onClose }) {
           )}
 
           {error && <div className="t-nodata" style={{ color: '#ff3355' }}>{error}</div>}
-          {loading && <ProgressLoader label={progress.phase || 'Loading…'} done={progress.done} total={progress.total} />}
+          {loading && <ProgressLoader label={phase || 'Loading…'} />}
 
           {!loading && !error && lineData.length === 0 && (
             <div className="t-nodata">
@@ -704,7 +691,7 @@ function RoundsModal({ onClose }) {
 
   useEffect(() => { setCurrentPage(1) }, [mode, selectedPlayer])
 
-  const { allRows, loading, error, progress } = useRoundData(mode, selectedPlayer, players)
+  const { allRows, loading, error, phase } = useRoundData(mode, selectedPlayer, players)
 
   const totalItems = allRows.length
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
@@ -745,7 +732,7 @@ function RoundsModal({ onClose }) {
 
           {error && <div className="t-nodata" style={{ color: '#ff3355' }}>{error}</div>}
 
-          {loading && <ProgressLoader label={progress.phase || 'Loading…'} done={progress.done} total={progress.total} />}
+          {loading && <ProgressLoader label={phase || 'Loading…'} />}
 
           {!error && !loading && allRows.length > 0 && (
             <div className="stats-row">
