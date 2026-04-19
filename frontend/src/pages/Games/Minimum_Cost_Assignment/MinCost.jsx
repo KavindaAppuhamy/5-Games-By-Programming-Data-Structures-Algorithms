@@ -1,10 +1,28 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import MinCostControls from './MinCostControls';
 import MinCostResults from './MinCostResults';
 import MinCostHistory from './MinCostHistory';
 import GameScoreboard from './GameScoreboard';
 import GameChallenge from './GameChallenge';
-import { solveMinCost } from '../../../api/mincost';
+import { solveMinCost, fetchPlayerStatus } from '../../../api/mincost';
+
+const PLAYER_NAME_KEY = 'mincost_player_name';
+
+function getStoredPlayerName() {
+  try {
+    return (localStorage.getItem(PLAYER_NAME_KEY) || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function setStoredPlayerName(name) {
+  try {
+    localStorage.setItem(PLAYER_NAME_KEY, name);
+  } catch {
+    // ignore storage errors
+  }
+}
 
 export default function MinCost() {
   const [loading, setLoading] = useState(false);
@@ -12,14 +30,40 @@ export default function MinCost() {
   const [error, setError] = useState(null);
   const [roundCount, setRoundCount] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
   const [gameStarted, setGameStarted] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
   const [roundsWon, setRoundsWon] = useState(0);
-  const [gameMode, setGameMode] = useState('challenge'); // 'challenge' or 'auto'
+  const [gameMode, setGameMode] = useState('challenge');
   const [playerGuess, setPlayerGuess] = useState('');
   const [roundComplete, setRoundComplete] = useState(false);
-  const [roundResult, setRoundResult] = useState(null); // 'won', 'lost', null
+  const [roundResult, setRoundResult] = useState(null);
+  const [playerStatus, setPlayerStatus] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [pendingStartStatus, setPendingStartStatus] = useState(null);
+
+  const trimmedPlayerName = useMemo(() => (playerName || '').trim(), [playerName]);
+  const remainingRounds = Math.max(0, 20 - roundCount);
+
+  async function refreshPlayerStatus(name) {
+    const clean = (name || '').trim();
+    if (!clean) {
+      setPlayerStatus(null);
+      return { playerName: '', roundsPlayed: 0, remainingRounds: 20, status: 'new' };
+    }
+
+    setStatusLoading(true);
+    try {
+      const status = await fetchPlayerStatus(clean);
+      setPlayerStatus(status);
+      return status;
+    } catch (e) {
+      setError(e.message || String(e));
+      return null;
+    } finally {
+      setStatusLoading(false);
+    }
+  }
 
   async function run(payload) {
     setLoading(true);
@@ -29,22 +73,31 @@ export default function MinCost() {
     setRoundComplete(false);
     setRoundResult(null);
 
+    const activeName = trimmedPlayerName || getStoredPlayerName();
+
+    if (!activeName) {
+      setError('Please enter your name to continue.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Add playerName to payload before sending
       const requestPayload = {
         ...payload,
-        playerName: playerName,
-        persist: payload.persist !== false
+        playerName: activeName,
+        persist: true,
       };
 
+      setStoredPlayerName(activeName);
+      setPlayerName(activeName);
+
       const res = await solveMinCost(requestPayload);
+      if (!res?.roundId) {
+        throw new Error('Round was not saved. Please try again.');
+      }
       setResult(res);
 
-      if (gameMode === 'challenge') {
-        // In challenge mode, wait for player guess
-        // Result is hidden until they submit
-      } else {
-        // In auto mode, automatically score
+      if (gameMode !== 'challenge') {
         scoreRound(res, null);
       }
     } catch (e) {
@@ -56,11 +109,7 @@ export default function MinCost() {
 
   function handleGuessSubmit(guess) {
     if (!result) return;
-
     const guessNum = parseInt(guess);
-    const optimalCost = result.totalCost;
-    const tolerance = Math.ceil(optimalCost * 0.15); // Within 15% is good
-
     scoreRound(result, guessNum);
   }
 
@@ -70,63 +119,76 @@ export default function MinCost() {
     let won = false;
 
     if (gameMode === 'challenge' && guessNum !== null) {
-      // Challenge mode scoring
       const diff = Math.abs(guessNum - optimalCost);
       const tolerance = Math.ceil(optimalCost * 0.15);
 
       if (diff === 0) {
-        points = 50; // Perfect guess
+        points = 50;
         won = true;
       } else if (diff <= tolerance) {
-        points = 30; // Good guess (within 15%)
+        points = 30;
         won = true;
       } else {
-        points = Math.max(10, 30 - Math.floor(diff / 10)); // Consolation points
+        points = Math.max(10, 30 - Math.floor(diff / 10));
         won = false;
       }
     } else if (gameMode === 'auto') {
-      // Auto mode: score based on algorithm performance
       if (res.algorithm === 'hungarian') {
-        points = Math.max(20, Math.floor(50 - res.runtimeMs)); // Faster = more points
+        points = Math.max(20, Math.floor(50 - res.runtimeMs));
       } else if (res.algorithm === 'greedy') {
         points = Math.max(15, Math.floor(40 - res.runtimeMs));
       } else {
-        points = 35; // Bonus for comparison
+        points = 35;
       }
       won = points > 20;
     }
 
-    setTotalScore(prev => prev + points);
-    setRoundsWon(prev => won ? prev + 1 : prev);
-    setRoundCount(prev => prev + 1);
+    setTotalScore((prev) => prev + points);
+    setRoundsWon((prev) => (won ? prev + 1 : prev));
+    setRoundCount((prev) => prev + 1);
     setRoundComplete(true);
     setRoundResult({
       won,
       points,
-      message: won
-        ? `🎉 YOU WON! +${points} Points!`
-        : `💔 Try again... +${points} Consolation Points`,
+      message: won ? `🎉 YOU WON! +${points} Points!` : `💔 Try again... +${points} Consolation Points`,
     });
   }
 
   function nextRound() {
-    if (roundCount >= 20) {
-      // Game over
-      return;
-    }
+    if (roundCount >= 20) return;
     setResult(null);
     setRoundResult(null);
     setRoundComplete(false);
     setPlayerGuess('');
   }
 
-  function startGame() {
-    if (!playerName.trim()) {
+  async function startGame(forceContinue = false) {
+    const clean = trimmedPlayerName;
+    if (!clean) {
       setError('Please enter your name to start');
       return;
     }
+
+    const status = pendingStartStatus || (await refreshPlayerStatus(clean));
+    if (!status) return;
+
+    if (status.status === 'completed') {
+      setError('This player name already completed 20 rounds. Please enter a new name to start a new game.');
+      setPendingStartStatus(null);
+      return;
+    }
+
+    if (status.status === 'active' && !forceContinue) {
+      setPendingStartStatus(status);
+      setError(null);
+      return;
+    }
+
+    setPendingStartStatus(null);
+    setStoredPlayerName(clean);
+    setPlayerName(clean);
     setGameStarted(true);
-    setRoundCount(0);
+    setRoundCount(status.roundsPlayed || 0);
     setResult(null);
     setTotalScore(0);
     setRoundsWon(0);
@@ -134,19 +196,32 @@ export default function MinCost() {
   }
 
   function resetGame() {
+    const locked = getStoredPlayerName() || trimmedPlayerName;
+
     setGameStarted(false);
     setRoundCount(0);
     setResult(null);
-    setPlayerName('');
+    setPlayerName(locked);
     setError(null);
     setTotalScore(0);
     setRoundsWon(0);
     setPlayerGuess('');
     setRoundComplete(false);
     setRoundResult(null);
+    setPlayerStatus(null);
+    setPendingStartStatus(null);
   }
 
-  // Game Over Screen
+  function continueWithExistingName() {
+    startGame(true);
+  }
+
+  function useDifferentName() {
+    setPendingStartStatus(null);
+    setError(null);
+    setPlayerStatus(null);
+  }
+
   if (gameStarted && roundCount >= 20) {
     const winRate = Math.round((roundsWon / 20) * 100);
     const rank = totalScore > 800 ? '🏆 Champion!' : totalScore > 600 ? '⭐ Expert' : totalScore > 400 ? '🎯 Skilled' : '🎮 Beginner';
@@ -155,10 +230,14 @@ export default function MinCost() {
       <div className="min-h-screen p-8 bg-gradient-to-br from-black via-purple-900 to-black text-white flex items-center justify-center">
         <div className="max-w-2xl w-full bg-gradient-to-r from-yellow-900 to-orange-900 p-12 rounded-lg shadow-2xl border-4 border-yellow-500 text-center">
           <h1 className="text-5xl font-bold mb-4">🎉 GAME OVER!</h1>
-          <p className="text-2xl mb-8 text-yellow-200">Final Score: <span className="font-bold text-yellow-300">{totalScore}</span></p>
+          <p className="text-2xl mb-8 text-yellow-200">
+            Final Score: <span className="font-bold text-yellow-300">{totalScore}</span>
+          </p>
 
           <div className="space-y-4 mb-8">
-            <p className="text-xl">Rounds Won: <span className="font-bold text-green-400">{roundsWon}/20</span> ({winRate}%)</p>
+            <p className="text-xl">
+              Rounds Won: <span className="font-bold text-green-400">{roundsWon}/20</span> ({winRate}%)
+            </p>
             <p className="text-2xl font-bold text-orange-300">{rank}</p>
             <p className="text-gray-200">Average Points per Round: {Math.round(totalScore / 20)}</p>
           </div>
@@ -181,19 +260,70 @@ export default function MinCost() {
           <h1 className="text-4xl font-bold mb-2 text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
             🎮 Minimum Cost Assignment
           </h1>
-          <p className="text-gray-400 text-center mb-6 text-sm">Optimize task assignments and compete for the highest score!</p>
+          <p className="text-gray-400 text-center mb-6 text-sm">
+            Play 20 rounds per player name. Existing names can continue until 20 rounds are complete.
+          </p>
 
           <div className="mb-4">
             <label className="block text-sm font-semibold mb-2">Enter Your Name:</label>
             <input
               type="text"
               value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
+              onChange={(e) => {
+                setPlayerName(e.target.value);
+                setPendingStartStatus(null);
+              }}
               placeholder="Your name..."
               className="w-full p-3 bg-gray-800 border border-purple-500 rounded text-white placeholder-gray-500 focus:outline-none focus:border-pink-500"
-              onKeyDown={(e) => e.key === 'Enter' && startGame()}
+              onKeyDown={(e) => e.key === 'Enter' && startGame(false)}
             />
           </div>
+
+          <div className="mb-4 p-4 bg-gray-800 rounded border border-gray-700 text-sm text-gray-300">
+            <div className="flex items-center justify-between">
+              <span>Status</span>
+              <span className="font-bold text-cyan-400">
+                {statusLoading ? 'Checking...' : playerStatus ? playerStatus.status : 'Not checked'}
+              </span>
+            </div>
+            {playerStatus && (
+              <>
+                <div className="mt-2 flex items-center justify-between">
+                  <span>Rounds played</span>
+                  <span>{playerStatus.roundsPlayed}/20</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between">
+                  <span>Rounds remaining</span>
+                  <span className="text-green-400 font-bold">{playerStatus.remainingRounds}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {pendingStartStatus?.status === 'active' && (
+            <div className="mb-4 p-4 bg-yellow-900 border border-yellow-500 rounded text-yellow-100 text-sm">
+              <p className="font-semibold mb-2">This name already exists.</p>
+              <p>
+                It has {pendingStartStatus.roundsPlayed} rounds played and {pendingStartStatus.remainingRounds} rounds remaining.
+              </p>
+              <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={continueWithExistingName}
+                  className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded font-semibold text-white"
+                >
+                  Continue with this name
+                </button>
+                <button
+                  type="button"
+                  onClick={useDifferentName}
+                  className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded font-semibold text-white"
+                >
+                  Use different name
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="mb-6 p-4 bg-gray-800 rounded border border-gray-700">
             <p className="text-sm font-semibold mb-3">Select Game Mode:</p>
@@ -220,7 +350,7 @@ export default function MinCost() {
           </div>
 
           <button
-            onClick={startGame}
+            onClick={() => startGame(false)}
             className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-3 rounded font-bold text-lg transition transform hover:scale-105"
           >
             ▶️ Start Game
@@ -234,18 +364,20 @@ export default function MinCost() {
 
   return (
     <div className="min-h-screen p-8 bg-gradient-to-br from-black via-purple-900 to-black text-white">
-      {/* Header with Score */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
             🎮 Minimum Cost Assignment
           </h1>
-          <p className="text-gray-400 mt-1">Player: <span className="text-purple-400 font-bold">{playerName}</span> | Mode: <span className="text-yellow-400 font-bold">{gameMode === 'challenge' ? '🎯 Challenge' : '⚡ Auto'}</span></p>
+          <p className="text-gray-400 mt-1">
+            Player: <span className="text-purple-400 font-bold">{trimmedPlayerName}</span> | Mode:{' '}
+            <span className="text-yellow-400 font-bold">{gameMode === 'challenge' ? '🎯 Challenge' : '⚡ Auto'}</span>
+            {' '}| Remaining Rounds: <span className="text-green-400 font-bold">{remainingRounds}</span>
+          </p>
         </div>
         <GameScoreboard score={totalScore} round={roundCount} wonRounds={roundsWon} />
       </div>
 
-      {/* Progress Bar */}
       <div className="mb-6 bg-gray-800 h-3 rounded overflow-hidden">
         <div
           className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-500"
@@ -253,12 +385,14 @@ export default function MinCost() {
         ></div>
       </div>
 
-      {/* Main Content */}
       {showHistory ? (
-        <MinCostHistory playerName={playerName} />
+        <MinCostHistory
+          key={trimmedPlayerName || 'no-player'}
+          playerName={trimmedPlayerName}
+          onClose={() => setShowHistory(false)}
+        />
       ) : (
         <>
-          {/* Challenge Phase */}
           {result && gameMode === 'challenge' && !roundComplete && (
             <GameChallenge
               result={result}
@@ -269,10 +403,7 @@ export default function MinCost() {
             />
           )}
 
-          {/* Regular Controls */}
-          {!result && !roundComplete && (
-            <MinCostControls onRun={run} />
-          )}
+          {!result && !roundComplete && <MinCostControls onRun={run} />}
 
           {loading && (
             <div className="mt-6 p-6 bg-blue-900 border border-blue-500 rounded text-center animate-pulse">
@@ -282,13 +413,14 @@ export default function MinCost() {
 
           {error && <div className="mt-6 p-4 bg-red-900 border border-red-500 rounded text-red-200">{error}</div>}
 
-          {/* Round Result */}
           {roundComplete && roundResult && (
-            <div className={`mt-6 p-6 rounded-lg border-2 text-center animate-bounce ${
-              roundResult.won
-                ? 'bg-gradient-to-r from-green-900 to-emerald-900 border-green-500'
-                : 'bg-gradient-to-r from-orange-900 to-yellow-900 border-orange-500'
-            }`}>
+            <div
+              className={`mt-6 p-6 rounded-lg border-2 text-center animate-bounce ${
+                roundResult.won
+                  ? 'bg-gradient-to-r from-green-900 to-emerald-900 border-green-500'
+                  : 'bg-gradient-to-r from-orange-900 to-yellow-900 border-orange-500'
+              }`}
+            >
               <h2 className={`text-3xl font-bold mb-2 ${roundResult.won ? 'text-green-300' : 'text-orange-300'}`}>
                 {roundResult.message}
               </h2>
@@ -297,9 +429,9 @@ export default function MinCost() {
               </p>
               {result && (
                 <p className="text-gray-300 mb-4">
-                  Optimal Cost: <span className="font-bold text-yellow-400">${result.totalCost}</span> |
-                  Algorithm: <span className="font-bold capitalize">{result.algorithm}</span> |
-                  Time: <span className="font-bold text-blue-400">{result.runtimeMs}ms</span>
+                  Optimal Cost: <span className="font-bold text-yellow-400">${result.totalCost}</span> | Algorithm:{' '}
+                  <span className="font-bold capitalize">{result.algorithm}</span> | Time:{' '}
+                  <span className="font-bold text-blue-400">{result.runtimeMs}ms</span>
                 </p>
               )}
               {roundCount < 20 && (
@@ -313,9 +445,7 @@ export default function MinCost() {
             </div>
           )}
 
-          {result && !roundComplete && gameMode !== 'challenge' && (
-            <MinCostResults result={result} />
-          )}
+          {result && !roundComplete && gameMode !== 'challenge' && <MinCostResults result={result} />}
 
           <div className="mt-8 flex gap-4 justify-center">
             <button

@@ -45,12 +45,18 @@ public class MinCostService {
             }
         }
 
+        String cleanPlayerName = request.getPlayerName() == null ? "" : request.getPlayerName().trim();
+        if (cleanPlayerName.isEmpty()) {
+            throw new IllegalArgumentException("playerName is required");
+        }
+
         String algorithm = request.getAlgorithm() != null ? request.getAlgorithm().toLowerCase() : "hungarian";
         boolean persist = request.getPersist() == null || request.getPersist();
 
         SolveResultDTO dto = new SolveResultDTO();
         dto.setN(n);
         dto.setSeed(seed);
+        dto.setPlayerName(cleanPlayerName);
         dto.setCreatedAt(LocalDateTime.now());
 
         if (algorithm.equals("both")) {
@@ -75,7 +81,7 @@ public class MinCostService {
                 MinCostRound round = new MinCostRound();
                 round.setId(UUID.randomUUID());
                 round.setCreatedAt(dto.getCreatedAt());
-                round.setPlayerName(request.getPlayerName());
+                round.setPlayerName(cleanPlayerName);
                 round.setN(n);
                 round.setMinCost(minCost);
                 round.setMaxCost(maxCost);
@@ -85,6 +91,10 @@ public class MinCostService {
                 round.setRuntimeMs(hMs);
                 round.setAssignments(jsonMapper.writeValueAsString(hres.assignments));
                 round.setComparisonResults(jsonMapper.writeValueAsString(comp));
+
+                // DEBUG log to help trace persistence and player name
+                System.out.println("DEBUG: Persisting round: id=" + round.getId() + " playerName='" + round.getPlayerName() + "' n=" + n + " algorithm=both totalCost=" + hres.totalCost + " runtimeMs=" + hMs);
+
                 repository.save(round);
                 dto.setRoundId(round.getId());
             }
@@ -106,7 +116,7 @@ public class MinCostService {
                 MinCostRound round = new MinCostRound();
                 round.setId(UUID.randomUUID());
                 round.setCreatedAt(dto.getCreatedAt());
-                round.setPlayerName(request.getPlayerName());
+                round.setPlayerName(cleanPlayerName);
                 round.setN(n);
                 round.setMinCost(minCost);
                 round.setMaxCost(maxCost);
@@ -115,6 +125,10 @@ public class MinCostService {
                 round.setTotalCost(res.totalCost);
                 round.setRuntimeMs(ms);
                 round.setAssignments(jsonMapper.writeValueAsString(res.assignments));
+
+                // DEBUG logging
+                System.out.println("DEBUG: Persisting round: id=" + round.getId() + " playerName='" + round.getPlayerName() + "' n=" + n + " algorithm=" + algorithm + " totalCost=" + res.totalCost + " runtimeMs=" + ms);
+
                 repository.save(round);
                 dto.setRoundId(round.getId());
             }

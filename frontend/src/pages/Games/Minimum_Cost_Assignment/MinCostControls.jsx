@@ -6,7 +6,6 @@ export default function MinCostControls({ onRun }) {
   const [minCost, setMinCost] = useState(20);
   const [maxCost, setMaxCost] = useState(200);
   const [algorithm, setAlgorithm] = useState('hungarian');
-  const [persist, setPersist] = useState(true);
 
   function handleRun() {
     const payload = {
@@ -14,7 +13,7 @@ export default function MinCostControls({ onRun }) {
       minCost: Number(minCost),
       maxCost: Number(maxCost),
       algorithm: algorithm,
-      persist: persist,
+      persist: true,
     };
     onRun(payload);
   }
@@ -47,9 +46,7 @@ export default function MinCostControls({ onRun }) {
           </select>
         </label>
 
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={persist} onChange={e => setPersist(e.target.checked)} /> Persist
-        </label>
+        <span className="text-xs text-gray-300">Auto-save: On</span>
 
         <button onClick={handleRun} className="ml-auto bg-purple-600 px-4 py-2 rounded">Run</button>
       </div>
