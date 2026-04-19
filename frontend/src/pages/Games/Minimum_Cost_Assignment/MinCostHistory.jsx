@@ -13,12 +13,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-export default function MinCostHistory({ playerName, onClose }) {
+export default function MinCostHistory({ playerName, onClose, initialMode = 'my' }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
-  const [mode, setMode] = useState('my'); // 'my' | 'all'
+  const [mode, setMode] = useState(initialMode); // 'my' | 'all'
 
   const trimmedPlayerName = useMemo(() => (playerName || '').trim(), [playerName]);
 

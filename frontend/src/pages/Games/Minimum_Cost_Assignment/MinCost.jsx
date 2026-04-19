@@ -30,6 +30,7 @@ export default function MinCost() {
   const [error, setError] = useState(null);
   const [roundCount, setRoundCount] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
+  const [historyMode, setHistoryMode] = useState('my');
   const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
   const [gameStarted, setGameStarted] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
@@ -222,6 +223,11 @@ export default function MinCost() {
     setPlayerStatus(null);
   }
 
+  function openHistory(mode = 'my') {
+    setHistoryMode(mode);
+    setShowHistory(true);
+  }
+
   if (gameStarted && roundCount >= 20) {
     const winRate = Math.round((roundsWon / 20) * 100);
     const rank = totalScore > 800 ? '🏆 Champion!' : totalScore > 600 ? '⭐ Expert' : totalScore > 400 ? '🎯 Skilled' : '🎮 Beginner';
@@ -242,13 +248,46 @@ export default function MinCost() {
             <p className="text-gray-200">Average Points per Round: {Math.round(totalScore / 20)}</p>
           </div>
 
-          <button
-            onClick={resetGame}
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded font-bold text-lg transition transform hover:scale-105"
-          >
-            🔄 Play Again
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => {
+                setGameStarted(false);
+                openHistory('my');
+              }}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded font-bold"
+            >
+              📊 View My Data
+            </button>
+            <button
+              onClick={() => {
+                setGameStarted(false);
+                openHistory('all');
+              }}
+              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded font-bold"
+            >
+              🌐 View All Players
+            </button>
+            <button
+              onClick={resetGame}
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded font-bold text-lg transition transform hover:scale-105"
+            >
+              🔄 Play Again
+            </button>
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  if (!gameStarted && showHistory) {
+    return (
+      <div className="min-h-screen p-8 bg-gradient-to-br from-black via-purple-900 to-black text-white">
+        <MinCostHistory
+          key={`${trimmedPlayerName || 'no-player'}-${historyMode}`}
+          playerName={trimmedPlayerName}
+          initialMode={historyMode}
+          onClose={() => setShowHistory(false)}
+        />
       </div>
     );
   }
@@ -356,6 +395,24 @@ export default function MinCost() {
             ▶️ Start Game
           </button>
 
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => openHistory('my')}
+              disabled={!trimmedPlayerName}
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded font-semibold"
+            >
+              📊 View My Data
+            </button>
+            <button
+              type="button"
+              onClick={() => openHistory('all')}
+              className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded font-semibold"
+            >
+              🌐 View All Players
+            </button>
+          </div>
+
           {error && <p className="mt-4 text-red-400 text-center">{error}</p>}
         </div>
       </div>
@@ -387,8 +444,9 @@ export default function MinCost() {
 
       {showHistory ? (
         <MinCostHistory
-          key={trimmedPlayerName || 'no-player'}
+          key={`${trimmedPlayerName || 'no-player'}-${historyMode}`}
           playerName={trimmedPlayerName}
+          initialMode={historyMode}
           onClose={() => setShowHistory(false)}
         />
       ) : (
@@ -449,10 +507,22 @@ export default function MinCost() {
 
           <div className="mt-8 flex gap-4 justify-center">
             <button
-              onClick={() => setShowHistory(!showHistory)}
+              onClick={() => {
+                setHistoryMode('my');
+                setShowHistory(true);
+              }}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded font-semibold transition"
             >
-              📊 {showHistory ? 'Hide' : 'View'} History
+              📊 View My Data
+            </button>
+            <button
+              onClick={() => {
+                setHistoryMode('all');
+                setShowHistory(true);
+              }}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded font-semibold transition"
+            >
+              🌐 View All Players
             </button>
             {roundCount > 0 && !roundComplete && (
               <button
