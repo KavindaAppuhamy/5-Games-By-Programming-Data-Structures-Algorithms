@@ -13,29 +13,22 @@ public class GameSubmitRequest {
     @Max(value = 1000, message = "Guess must be less than or equal to 1000")
     private Integer guess;
 
-    // Default constructor
+    @NotBlank(message = "Algorithm selection is required")
+    private String algorithm;
+
     public GameSubmitRequest() {}
 
-    // Constructor
-    public GameSubmitRequest(String name, Integer guess) {
+    public GameSubmitRequest(String name, Integer guess, String algorithm) {
         this.name = name;
         this.guess = guess;
+        this.algorithm = algorithm;
     }
 
     // Getters and setters
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getGuess() {
-        return guess;
-    }
-
-    public void setGuess(Integer guess) {
-        this.guess = guess;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public Integer getGuess() { return guess; }
+    public void setGuess(Integer guess) { this.guess = guess; }
+    public String getAlgorithm() { return algorithm; }
+    public void setAlgorithm(String algorithm) { this.algorithm = algorithm; }
 }
