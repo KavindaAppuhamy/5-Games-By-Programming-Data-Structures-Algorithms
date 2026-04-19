@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -50,43 +51,27 @@ public class MinCostController {
         return result;
     }
 
-    /**
-     * Unified history endpoint. Optional playerName filter (case-insensitive).
-     * Returns a Page<MinCostRound> JSON object compatible with frontend paging.
-     */
     @GetMapping("/history")
+    @Transactional(readOnly = true)
     public Page<MinCostHistoryDTO> history(@RequestParam(defaultValue = "0") int page,
                                            @RequestParam(defaultValue = "20") int size,
                                            @RequestParam(required = false) String playerName) {
+
         PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<MinCostRound> rounds;
 
         if (playerName == null || playerName.trim().isEmpty()) {
-            rounds = repository.findAll(pr);
+            return repository.findAllHistoryDTOs(pr);
         } else {
             String cleanName = playerName.trim();
             try {
-                rounds = repository.findByPlayerNameNormalized(cleanName, pr);
+                return repository.findByPlayerNameNormalizedDTO(cleanName, pr);
             } catch (Exception ex) {
                 System.out.println("DEBUG: filtered history failed for playerName='" + cleanName + "' : " + ex.getMessage());
                 return Page.empty(pr);
             }
         }
-
-        return rounds.map(r -> new MinCostHistoryDTO(
-                r.getId(),
-                r.getPlayerName(),
-                r.getN(),
-                r.getAlgorithm(),
-                r.getTotalCost(),
-                r.getRuntimeMs(),
-                r.getCreatedAt()
-        ));
     }
 
-    /**
-     * Delete all rounds for a given player name. Useful for test cleanup.
-     */
     @DeleteMapping("/cleanup")
     public String cleanupByPlayer(@RequestParam String playerName) {
         if (playerName == null || playerName.trim().isEmpty()) {
@@ -115,5 +100,4 @@ public class MinCostController {
                 .sorted()
                 .toList();
     }
-
 }
