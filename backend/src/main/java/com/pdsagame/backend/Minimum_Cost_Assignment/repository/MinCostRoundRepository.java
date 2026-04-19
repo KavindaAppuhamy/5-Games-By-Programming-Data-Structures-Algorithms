@@ -1,5 +1,6 @@
 package com.pdsagame.backend.Minimum_Cost_Assignment.repository;
 
+import com.pdsagame.backend.Minimum_Cost_Assignment.dto.MinCostHistoryDTO;
 import com.pdsagame.backend.Minimum_Cost_Assignment.model.MinCostRound;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,8 +16,14 @@ import java.util.UUID;
 @Repository
 public interface MinCostRoundRepository extends JpaRepository<MinCostRound, UUID> {
 
-    @Query("SELECT r FROM MinCostRound r WHERE LOWER(TRIM(COALESCE(r.playerName, ''))) = LOWER(TRIM(:playerName))")
-    Page<MinCostRound> findByPlayerNameNormalized(@Param("playerName") String playerName, Pageable pageable);
+    @Query("SELECT new com.pdsagame.backend.Minimum_Cost_Assignment.dto.MinCostHistoryDTO(r.id, r.playerName, r.n, r.algorithm, r.totalCost, r.runtimeMs, r.createdAt) FROM MinCostRound r")
+    Page<MinCostHistoryDTO> findAllHistoryDTOs(Pageable pageable);
+
+    @Query("SELECT new com.pdsagame.backend.Minimum_Cost_Assignment.dto.MinCostHistoryDTO(r.id, r.playerName, r.n, r.algorithm, r.totalCost, r.runtimeMs, r.createdAt) " +
+            "FROM MinCostRound r WHERE LOWER(TRIM(COALESCE(r.playerName, ''))) = LOWER(TRIM(:playerName))")
+    Page<MinCostHistoryDTO> findByPlayerNameNormalizedDTO(@Param("playerName") String playerName, Pageable pageable);
+
+
 
     @Query("SELECT COUNT(r) FROM MinCostRound r WHERE LOWER(TRIM(COALESCE(r.playerName, ''))) = LOWER(TRIM(:playerName))")
     long countByPlayerNameNormalized(@Param("playerName") String playerName);
