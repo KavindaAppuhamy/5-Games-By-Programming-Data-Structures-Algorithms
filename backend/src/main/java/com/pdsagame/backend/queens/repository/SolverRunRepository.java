@@ -8,7 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface SolverRunRepository extends JpaRepository<SolverRun, Long> {
+
     Optional<SolverRun> findTopBySolverTypeOrderByRanAtDesc(SolverRun.SolverType solverType);
-
-
 }

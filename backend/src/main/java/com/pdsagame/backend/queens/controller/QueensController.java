@@ -47,15 +47,6 @@ public class QueensController {
         return ResponseEntity.ok(service.getComparison());
     }
 
-    /**
-     * GET /api/queens/solve/get
-     * Returns all the sequential vs threaded run results for comparison.
-     */
-    @GetMapping("/solve/get")
-    public ResponseEntity<List<QueensService.SolverRunDto>> getAllSolverRuns() {
-        return ResponseEntity.ok(service.getAllSolverRuns());
-    }
-
     // ------------------------------------------------ Game endpoints
 
     /**

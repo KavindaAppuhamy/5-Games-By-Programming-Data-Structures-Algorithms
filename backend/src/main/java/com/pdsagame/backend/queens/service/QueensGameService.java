@@ -84,11 +84,6 @@ public class QueensGameService {
         return new ComparisonDto(seq.map(this::toDto).orElse(null), thr.map(this::toDto).orElse(null));
     }
 
-    /** Get all the comparisons */
-    public List<SolverRunDto> getAllSolverRuns() {
-        return solverRunRepo.findAll().stream().map(this::toDto).collect(Collectors.toList());
-    }
-
     // ------------------------------------------------------------------ Gameplay
 
     /**
