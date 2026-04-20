@@ -13,7 +13,7 @@ const Scoreboard = ({ onClose }) => {
 
     const fetchScoreboard = async () => {
         try {
-            const response = await fetch('http://localhost:8081/api/scoreboard/all');
+            const response = await fetch('http://localhost:8080/api/scoreboard/all');
             const data = await response.json();
             setScores(data.scores || []);
             setStats(data.statistics);

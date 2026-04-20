@@ -1,6 +1,6 @@
 package com.pdsagame.backend.TrafficSimulation.controller;
 
-import com.pdsagame.backend.TrafficSimulation.service.GameService;
+import com.pdsagame.backend.TrafficSimulation.service.TrafficGameService;
 import com.pdsagame.backend.TrafficSimulation.repository.Repository;
 import com.pdsagame.backend.TrafficSimulation.dto.GameSubmitRequest;
 import com.pdsagame.backend.TrafficSimulation.model.GameResult;
@@ -20,11 +20,11 @@ import java.util.*;
 @CrossOrigin("*")
 public class TrafficController {
 
-    private final GameService gameService;
+    private final TrafficGameService gameService;
     private final Repository repository;
 
     @Autowired
-    public TrafficController(GameService gameService, Repository repository) {
+    public TrafficController(TrafficGameService gameService, Repository repository) {
         this.gameService = gameService;
         this.repository = repository;
     }

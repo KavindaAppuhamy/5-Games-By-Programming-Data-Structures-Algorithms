@@ -52,9 +52,9 @@ const Analytics = ({ onClose, playerName }) => {
                     setLoading(false);
                     return;
                 }
-                endpoint = `http://localhost:8081/api/analytics/player/${encodeURIComponent(selectedPlayer.trim())}`;
+                endpoint = `http://localhost:8080/api/analytics/player/${encodeURIComponent(selectedPlayer.trim())}`;
             } else {
-                endpoint = 'http://localhost:8081/api/analytics/all-players';
+                endpoint = 'http://localhost:8080/api/analytics/all-players';
             }
 
             const response = await fetch(endpoint);

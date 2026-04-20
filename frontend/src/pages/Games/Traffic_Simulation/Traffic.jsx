@@ -9,8 +9,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useNavigate } from 'react-router-dom';
-import Scoreboard from './Scoreboard';
-import Analytics from './Analytics';
+import Scoreboard from './Scoreboard.jsx';
+import Analytics from './Analytics.jsx';
 
 const nodesInit = [
     { id: 'A', position: { x: 100, y: 200 }, data: { label: '🚦 Source' } },
@@ -167,7 +167,7 @@ export default function App() {
 
         setCheckingName(true);
         try {
-            const response = await fetch(`http://localhost:8081/api/game/player-stats?playerName=${encodeURIComponent(name.trim())}`);
+            const response = await fetch(`http://localhost:8080/api/game/player-stats?playerName=${encodeURIComponent(name.trim())}`);
             if (response.ok) {
                 const data = await response.json();
                 setPlayerStats(data);
@@ -193,9 +193,12 @@ export default function App() {
                 setTotalScore(0);
                 setPlayerStats(null);
             }
+            // Always set nameChecked to true after checking
             setNameChecked(true);
         } catch (error) {
             console.error('Failed to check player status:', error);
+            // Still set nameChecked to true even on error to allow gameplay
+            setNameChecked(true);
         } finally {
             setCheckingName(false);
         }
@@ -204,7 +207,7 @@ export default function App() {
     const fetchPlayerStats = async () => {
         if (!name.trim()) return;
         try {
-            const response = await fetch(`http://localhost:8081/api/game/player-stats?playerName=${encodeURIComponent(name.trim())}`);
+            const response = await fetch(`http://localhost:8080/api/game/player-stats?playerName=${encodeURIComponent(name.trim())}`);
             if (response.ok) {
                 const data = await response.json();
                 setPlayerStats(data);
@@ -283,7 +286,7 @@ export default function App() {
 
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:8081/api/game/start?algorithm=${selectedAlgorithm}`);
+            const res = await fetch(`http://localhost:8080/api/game/start?algorithm=${selectedAlgorithm}`);
 
             if (!res.ok) {
                 const errorData = await res.json();
@@ -353,7 +356,7 @@ export default function App() {
 
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8081/api/game/submit", {
+            const res = await fetch("http://localhost:8080/api/game/submit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -440,7 +443,7 @@ export default function App() {
 
         // Automatically start next round with the SAME algorithm
         try {
-            const res = await fetch(`http://localhost:8081/api/game/start?algorithm=${selectedAlgorithm}`);
+            const res = await fetch(`http://localhost:8080/api/game/start?algorithm=${selectedAlgorithm}`);
 
             if (!res.ok) {
                 const errorData = await res.json();
@@ -853,9 +856,21 @@ export default function App() {
                                     top: '50%',
                                     transform: 'translateY(-50%)',
                                     fontSize: '14px',
-                                    color: '#94a3b8',
+                                    color: '#f59e0b',
                                 }}>
-                                    Press Enter or click outside
+                                    Press Enter to verify
+                                </span>
+                            )}
+                            {!checkingName && nameChecked && name.trim() && !isGameCompleted && (
+                                <span style={{
+                                    position: 'absolute',
+                                    right: '16px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    fontSize: '14px',
+                                    color: '#10b981',
+                                }}>
+                                    ✓ Verified
                                 </span>
                             )}
                         </div>
@@ -956,17 +971,17 @@ export default function App() {
                     {!gameStarted && !roundCompleted && (
                         <button
                             onClick={startGame}
-                            disabled={loading || currentRound >= 20 || isGameCompleted || !nameChecked}
+                            disabled={loading || currentRound >= 20 || isGameCompleted || !nameChecked || !name.trim()}
                             style={{
                                 width: '100%',
                                 padding: '14px',
                                 fontSize: '16px',
                                 fontWeight: '600',
                                 color: 'white',
-                                background: (currentRound >= 20 || isGameCompleted || !nameChecked) ? '#94a3b8' : getAlgorithmColor(selectedAlgorithm),
+                                background: (loading || currentRound >= 20 || isGameCompleted || !nameChecked || !name.trim()) ? '#94a3b8' : getAlgorithmColor(selectedAlgorithm),
                                 border: 'none',
                                 borderRadius: '12px',
-                                cursor: (loading || currentRound >= 20 || isGameCompleted || !nameChecked) ? 'not-allowed' : 'pointer',
+                                cursor: (loading || currentRound >= 20 || isGameCompleted || !nameChecked || !name.trim()) ? 'not-allowed' : 'pointer',
                                 transition: 'transform 0.2s, box-shadow 0.2s',
                                 marginBottom: '24px',
                                 opacity: loading ? 0.7 : 1,
@@ -976,7 +991,7 @@ export default function App() {
                                 gap: '8px',
                             }}
                             onMouseEnter={(e) => {
-                                if (!loading && currentRound < 20 && !isGameCompleted && nameChecked) {
+                                if (!loading && currentRound < 20 && !isGameCompleted && nameChecked && name.trim()) {
                                     e.currentTarget.style.transform = 'translateY(-2px)';
                                     e.currentTarget.style.boxShadow = '0 10px 20px rgba(102, 126, 234, 0.4)';
                                 }
@@ -989,8 +1004,9 @@ export default function App() {
                             <span>🚀</span>
                             {loading ? 'Loading...' :
                                 currentRound >= 20 || isGameCompleted ? 'All Rounds Complete' :
-                                    !nameChecked && name.trim() ? 'Press Enter to verify name' :
-                                        'Start New Round'}
+                                    !name.trim() ? 'Enter Name' :
+                                        !nameChecked ? 'Verifying Name...' :
+                                            'Start New Round'}
                         </button>
                     )}
 

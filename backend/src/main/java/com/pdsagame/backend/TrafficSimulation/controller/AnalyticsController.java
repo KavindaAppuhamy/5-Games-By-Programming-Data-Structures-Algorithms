@@ -1,12 +1,19 @@
 package com.pdsagame.backend.TrafficSimulation.controller;
 
-import com.pdsagame.backend.TrafficSimulation.repository.Repository;
 import com.pdsagame.backend.TrafficSimulation.model.GameResult;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.pdsagame.backend.TrafficSimulation.repository.Repository;
 
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 @RestController
 @RequestMapping("/api/analytics")

@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @ControllerAdvice
-public class GlobalExceptionHandler {
+public class TrafficExceptionHandler {
 
     @ExceptionHandler(GameValidationException.class)
     public ResponseEntity<Map<String, Object>> handleGameValidationException(GameValidationException ex) {
