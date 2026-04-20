@@ -22,12 +22,6 @@ public class GameResult {
     private int correctValue;
     private boolean win;
 
-    private String algorithmUsed;
-    private int roundNumber;
-    private int roundScore;
-    private int totalScore;
-    private long algorithmTimeMs;
-
     private long edmondsKarpTimeMs;
     private long dinicTimeMs;
 
