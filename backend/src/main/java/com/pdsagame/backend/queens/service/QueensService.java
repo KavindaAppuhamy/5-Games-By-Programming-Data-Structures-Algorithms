@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Service
-public class QueensGameService {
+public class QueensService {
 
     @Value("${queens.board.size}")
     private int BOARD_SIZE = 16;
@@ -28,11 +28,11 @@ public class QueensGameService {
     private final SequentialQueensSolver seqSolver;
     private final ThreadedQueensSolver thrSolver;
 
-    public QueensGameService(QueensSolutionRepository solutionRepo,
-                             PlayerRecordRepository playerRepo,
-                             SolverRunRepository solverRunRepo,
-                             SequentialQueensSolver seqSolver,
-                             ThreadedQueensSolver thrSolver) {
+    public QueensService(QueensSolutionRepository solutionRepo,
+                         PlayerRecordRepository playerRepo,
+                         SolverRunRepository solverRunRepo,
+                         SequentialQueensSolver seqSolver,
+                         ThreadedQueensSolver thrSolver) {
         this.solutionRepo = solutionRepo;
         this.playerRepo = playerRepo;
         this.solverRunRepo = solverRunRepo;
@@ -82,6 +82,11 @@ public class QueensGameService {
         Optional<SolverRun> seq = solverRunRepo.findTopBySolverTypeOrderByRanAtDesc(SolverRun.SolverType.SEQUENTIAL);
         Optional<SolverRun> thr = solverRunRepo.findTopBySolverTypeOrderByRanAtDesc(SolverRun.SolverType.THREADED);
         return new ComparisonDto(seq.map(this::toDto).orElse(null), thr.map(this::toDto).orElse(null));
+    }
+
+    /** Get all the comparisons */
+    public List<SolverRunDto> getAllSolverRuns() {
+        return solverRunRepo.findAll().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     // ------------------------------------------------------------------ Gameplay
