@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import './App.css'
 import GameMenu from './pages/Menu/gameMenu'
 import MinCost from './pages/Games/Minimum_Cost_Assignment/MinCost'
@@ -9,13 +10,13 @@ import SixteenQueens from './pages/Games/Sixteen_Queens/SixteenQueens'
 
 import './App.css';
 
-import GameMenu from './pages/Menu/gameMenu';
-import MinCost from './pages/Games/Minimum_Cost_Assignment/MinCost';
-import SnakeLadder from './pages/Games/Snake_&_Ladder/SnakeLadder';
-import Traffic from './pages/Games/Traffic_Simulation/Traffic';
-import KnightTour from './pages/Games/Knight’s_Tour/KnightTour';
-import SixteenQueens from './pages/Games/Sixteen_Queens/SixteenQueens';
-import 'bootstrap/dist/css/bootstrap.min.css';
+// import GameMenu from './pages/Menu/gameMenu';
+// import MinCost from './pages/Games/Minimum_Cost_Assignment/MinCost';
+// import SnakeLadder from './pages/Games/Snake_&_Ladder/SnakeLadder';
+// import Traffic from './pages/Games/Traffic_Simulation/Traffic';
+// import KnightTour from './pages/Games/Knight’s_Tour/KnightTour';
+// import SixteenQueens from './pages/Games/Sixteen_Queens/SixteenQueens';
+// import 'bootstrap/dist/css/bootstrap.min.css';
 
 
 function App() {

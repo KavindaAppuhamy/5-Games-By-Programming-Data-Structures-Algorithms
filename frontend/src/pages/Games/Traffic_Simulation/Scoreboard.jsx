@@ -1,12 +1,11 @@
-// Scoreboard.jsx
 import React, { useState, useEffect } from 'react';
 
 const Scoreboard = ({ onClose }) => {
     const [scores, setScores] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('all'); // all, wins, losses
-    const [sortBy, setSortBy] = useState('recent'); // recent, wins, name
+    const [filter, setFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('recent');
 
     useEffect(() => {
         fetchScoreboard();
@@ -14,7 +13,7 @@ const Scoreboard = ({ onClose }) => {
 
     const fetchScoreboard = async () => {
         try {
-            const response = await fetch('http://localhost:8081/api/scoreboard/all');
+            const response = await fetch('http://localhost:8080/api/scoreboard/all');
             const data = await response.json();
             setScores(data.scores || []);
             setStats(data.statistics);
@@ -35,6 +34,9 @@ const Scoreboard = ({ onClose }) => {
         if (sortBy === 'recent') {
             return new Date(b.createdAt) - new Date(a.createdAt);
         }
+        if (sortBy === 'score') {
+            return (b.totalScore || 0) - (a.totalScore || 0);
+        }
         if (sortBy === 'wins') {
             return (b.win ? 1 : 0) - (a.win ? 1 : 0);
         }
@@ -43,6 +45,30 @@ const Scoreboard = ({ onClose }) => {
         }
         return 0;
     });
+
+    const getAlgorithmBadge = (algorithm) => {
+        const badges = {
+            'EDMONDS_KARP': { text: 'EK', color: '#6366f1', bg: '#e0e7ff' },
+            'DINIC': { text: 'Dinic', color: '#10b981', bg: '#d1fae5' },
+            'BOTH': { text: 'Both', color: '#8b5cf6', bg: '#ede9fe' }
+        };
+        const badge = badges[algorithm] || { text: algorithm, color: '#64748b', bg: '#f1f5f9' };
+        return (
+            <span style={{
+                display: 'inline-block',
+                padding: '3px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '600',
+                background: badge.bg,
+                color: badge.color,
+                marginLeft: '8px',
+                letterSpacing: '0.3px',
+            }}>
+                {badge.text}
+            </span>
+        );
+    };
 
     return (
         <div style={{
@@ -74,8 +100,11 @@ const Scoreboard = ({ onClose }) => {
                         transform: translateY(0);
                     }
                 }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
                 .scoreboard-row:hover {
-                    background: linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+                    background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, transparent 100%) !important;
                 }
             `}</style>
 
@@ -83,7 +112,7 @@ const Scoreboard = ({ onClose }) => {
                 backgroundColor: 'white',
                 borderRadius: '24px',
                 width: '90%',
-                maxWidth: '1000px',
+                maxWidth: '1300px',
                 maxHeight: '85vh',
                 overflow: 'hidden',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
@@ -138,7 +167,7 @@ const Scoreboard = ({ onClose }) => {
                 {stats && (
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
                         gap: '16px',
                         padding: '24px 32px',
                         background: '#f8fafc',
@@ -150,16 +179,10 @@ const Scoreboard = ({ onClose }) => {
                             color="#6366f1"
                         />
                         <StatCard
-                            title="Wins"
+                            title="Total Wins"
                             value={stats.totalWins}
                             icon="🏆"
                             color="#10b981"
-                        />
-                        <StatCard
-                            title="Losses"
-                            value={stats.totalLosses}
-                            icon="💪"
-                            color="#ef4444"
                         />
                         <StatCard
                             title="Win Rate"
@@ -173,77 +196,151 @@ const Scoreboard = ({ onClose }) => {
                             icon="👑"
                             color="#8b5cf6"
                         />
+                        <StatCard
+                            title="Highest Score"
+                            value={stats.highestScore || 0}
+                            icon="⭐"
+                            color="#ef4444"
+                        />
                     </div>
                 )}
 
                 {/* Filters and Controls */}
                 <div style={{
-                    padding: '16px 32px',
+                    padding: '18px 32px',
                     display: 'flex',
                     gap: '12px',
                     borderBottom: '1px solid #e2e8f0',
+                    background: '#ffffff',
+                    alignItems: 'center',
                 }}>
-                    <select
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: '1px solid #e2e8f0',
-                            background: 'white',
+                    {/* Filter Select */}
+                    <div style={{ position: 'relative', minWidth: '160px' }}>
+                        <span style={{
+                            position: 'absolute',
+                            left: '14px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
                             fontSize: '14px',
-                            cursor: 'pointer',
-                            outline: 'none',
-                        }}
-                    >
-                        <option value="all">All Games</option>
-                        <option value="wins">Wins Only</option>
-                        <option value="losses">Losses Only</option>
-                    </select>
+                            color: '#6366f1',
+                            pointerEvents: 'none',
+                            zIndex: 1,
+                        }}>
+                            🔍
+                        </span>
+                        <select
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '9px 36px 9px 42px',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0',
+                                background: 'white',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                appearance: 'none',
+                                WebkitAppearance: 'none',
+                                MozAppearance: 'none',
+                            }}
+                        >
+                            <option value="all">📋 All Rounds</option>
+                            <option value="wins">🏆 Wins Only</option>
+                            <option value="losses">💪 Losses Only</option>
+                        </select>
+                        <span style={{
+                            position: 'absolute',
+                            right: '14px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '12px',
+                            color: '#94a3b8',
+                            pointerEvents: 'none',
+                        }}>
+                            ▼
+                        </span>
+                    </div>
 
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: '1px solid #e2e8f0',
-                            background: 'white',
+                    {/* Sort Select */}
+                    <div style={{ position: 'relative', minWidth: '160px' }}>
+                        <span style={{
+                            position: 'absolute',
+                            left: '14px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
                             fontSize: '14px',
-                            cursor: 'pointer',
-                            outline: 'none',
-                        }}
-                    >
-                        <option value="recent">Most Recent</option>
-                        <option value="wins">Wins First</option>
-                        <option value="name">Player Name</option>
-                    </select>
+                            color: '#10b981',
+                            pointerEvents: 'none',
+                            zIndex: 1,
+                        }}>
+                            📊
+                        </span>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '9px 36px 9px 42px',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0',
+                                background: 'white',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                appearance: 'none',
+                                WebkitAppearance: 'none',
+                                MozAppearance: 'none',
+                            }}
+                        >
+                            <option value="recent">🕐 Most Recent</option>
+                            <option value="score">⭐ Highest Score</option>
+                            <option value="wins">🏆 Wins First</option>
+                            <option value="name">👤 Player Name</option>
+                        </select>
+                        <span style={{
+                            position: 'absolute',
+                            right: '14px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '12px',
+                            color: '#94a3b8',
+                            pointerEvents: 'none',
+                        }}>
+                            ▼
+                        </span>
+                    </div>
 
+                    {/* Refresh Button */}
                     <button
                         onClick={fetchScoreboard}
                         style={{
                             marginLeft: 'auto',
-                            padding: '8px 16px',
+                            padding: '9px 18px',
                             borderRadius: '8px',
                             border: '1px solid #e2e8f0',
                             background: 'white',
                             fontSize: '14px',
+                            fontWeight: '500',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
                             transition: 'all 0.2s',
+                            color: '#64748b',
                         }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.background = '#f8fafc';
                             e.currentTarget.style.borderColor = '#cbd5e1';
+                            e.currentTarget.style.color = '#1e293b';
                         }}
                         onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'white';
                             e.currentTarget.style.borderColor = '#e2e8f0';
+                            e.currentTarget.style.color = '#64748b';
                         }}
                     >
-                        🔄 Refresh
+                        <span>🔄</span> Refresh
                     </button>
                 </div>
 
@@ -252,44 +349,42 @@ const Scoreboard = ({ onClose }) => {
                     flex: 1,
                     overflowY: 'auto',
                     padding: '0',
+                    background: '#ffffff',
                 }}>
                     {loading ? (
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            padding: '60px',
+                            padding: '80px',
                             color: '#64748b',
                         }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{
-                                    width: '40px',
-                                    height: '40px',
+                                    width: '48px',
+                                    height: '48px',
                                     border: '4px solid #e2e8f0',
                                     borderTopColor: '#6366f1',
                                     borderRadius: '50%',
                                     animation: 'spin 1s linear infinite',
-                                    margin: '0 auto 16px',
+                                    margin: '0 auto 20px',
                                 }} />
-                                <style>{`
-                                    @keyframes spin {
-                                        to { transform: rotate(360deg); }
-                                    }
-                                `}</style>
-                                Loading scoreboard...
+                                <div style={{ fontSize: '16px', fontWeight: '500' }}>
+                                    Loading scoreboard...
+                                </div>
                             </div>
                         </div>
                     ) : sortedScores.length === 0 ? (
                         <div style={{
                             textAlign: 'center',
-                            padding: '60px',
+                            padding: '80px 20px',
                             color: '#64748b',
                         }}>
-                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-                            <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+                            <div style={{ fontSize: '56px', marginBottom: '20px' }}>📊</div>
+                            <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px' }}>
                                 No games played yet
                             </div>
-                            <div style={{ fontSize: '14px' }}>
+                            <div style={{ fontSize: '15px', lineHeight: '1.6' }}>
                                 Start playing to see your scores here!
                             </div>
                         </div>
@@ -303,15 +398,18 @@ const Scoreboard = ({ onClose }) => {
                                 top: 0,
                                 background: '#f8fafc',
                                 borderBottom: '2px solid #e2e8f0',
+                                zIndex: 10,
                             }}>
                             <tr>
                                 <th style={thStyle}>#</th>
+                                <th style={thStyle}>Round</th>
                                 <th style={thStyle}>Player</th>
+                                <th style={thStyle}>Algorithm</th>
                                 <th style={thStyle}>Guess</th>
                                 <th style={thStyle}>Correct</th>
-                                <th style={thStyle}>Result</th>
-                                <th style={thStyle}>EK Time</th>
-                                <th style={thStyle}>Dinic Time</th>
+                                <th style={thStyle}>Points</th>
+                                <th style={thStyle}>Total</th>
+                                <th style={thStyle}>Time</th>
                                 <th style={thStyle}>Date</th>
                             </tr>
                             </thead>
@@ -323,23 +421,39 @@ const Scoreboard = ({ onClose }) => {
                                     style={{
                                         borderBottom: '1px solid #f1f5f9',
                                         transition: 'background 0.2s',
+                                        background: score.win ? 'rgba(16, 185, 129, 0.04)' : 'transparent',
                                     }}
                                 >
+                                    <td style={{ ...tdStyle, width: '50px' }}>
+                                        <span style={{
+                                            display: 'inline-block',
+                                            minWidth: '28px',
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            background: index < 3 ? '#fbbf24' : '#e2e8f0',
+                                            color: index < 3 ? '#1e293b' : '#64748b',
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            textAlign: 'center',
+                                        }}>
+                                            {index + 1}
+                                        </span>
+                                    </td>
                                     <td style={tdStyle}>
-                                            <span style={{
-                                                display: 'inline-block',
-                                                width: '24px',
-                                                height: '24px',
-                                                borderRadius: '6px',
-                                                background: index < 3 ? '#fbbf24' : '#e2e8f0',
-                                                color: index < 3 ? '#1e293b' : '#64748b',
-                                                fontSize: '12px',
-                                                fontWeight: '600',
-                                                lineHeight: '24px',
-                                                textAlign: 'center',
-                                            }}>
-                                                {index + 1}
-                                            </span>
+                                        <span style={{
+                                            display: 'inline-block',
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '8px',
+                                            background: score.win ? '#d1fae5' : '#f1f5f9',
+                                            color: score.win ? '#059669' : '#64748b',
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            lineHeight: '36px',
+                                            textAlign: 'center',
+                                        }}>
+                                            {score.roundNumber || '-'}
+                                        </span>
                                     </td>
                                     <td style={{
                                         ...tdStyle,
@@ -348,7 +462,15 @@ const Scoreboard = ({ onClose }) => {
                                     }}>
                                         {score.playerName}
                                     </td>
-                                    <td style={tdStyle}>{score.guessedValue}</td>
+                                    <td style={tdStyle}>
+                                        {getAlgorithmBadge(score.algorithmUsed)}
+                                    </td>
+                                    <td style={{
+                                        ...tdStyle,
+                                        fontWeight: '500',
+                                    }}>
+                                        {score.guessedValue}
+                                    </td>
                                     <td style={{
                                         ...tdStyle,
                                         fontWeight: '600',
@@ -357,43 +479,48 @@ const Scoreboard = ({ onClose }) => {
                                         {score.correctValue}
                                     </td>
                                     <td style={tdStyle}>
-                                            <span style={{
-                                                display: 'inline-block',
-                                                padding: '4px 12px',
-                                                borderRadius: '20px',
-                                                fontSize: '12px',
-                                                fontWeight: '600',
-                                                background: score.win ? '#d1fae5' : '#fee2e2',
-                                                color: score.win ? '#059669' : '#dc2626',
-                                            }}>
-                                                {score.win ? '🏆 WIN' : '❌ LOSE'}
-                                            </span>
+                                        <span style={{
+                                            display: 'inline-block',
+                                            padding: '4px 12px',
+                                            borderRadius: '20px',
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            background: score.win ? '#d1fae5' : '#fee2e2',
+                                            color: score.win ? '#059669' : '#dc2626',
+                                        }}>
+                                            {score.win ? '+10' : '+0'}
+                                        </span>
+                                    </td>
+                                    <td style={{
+                                        ...tdStyle,
+                                        fontWeight: '700',
+                                        color: '#8b5cf6',
+                                    }}>
+                                        <span style={{
+                                            display: 'inline-block',
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            background: '#ede9fe',
+                                        }}>
+                                            {score.totalScore || 0}
+                                        </span>
                                     </td>
                                     <td style={tdStyle}>
-                                            <span style={{
-                                                fontFamily: 'monospace',
-                                                fontSize: '12px',
-                                                color: '#64748b',
-                                            }}>
-                                                {score.edmondsKarpTimeMs}ms
-                                            </span>
+                                        <span style={{
+                                            fontFamily: 'monospace',
+                                            fontSize: '12px',
+                                            color: '#64748b',
+                                        }}>
+                                            {score.algorithmTimeMs || '-'}ms
+                                        </span>
                                     </td>
                                     <td style={tdStyle}>
-                                            <span style={{
-                                                fontFamily: 'monospace',
-                                                fontSize: '12px',
-                                                color: '#64748b',
-                                            }}>
-                                                {score.dinicTimeMs}ms
-                                            </span>
-                                    </td>
-                                    <td style={tdStyle}>
-                                            <span style={{
-                                                fontSize: '12px',
-                                                color: '#94a3b8',
-                                            }}>
-                                                {formatDate(score.createdAt)}
-                                            </span>
+                                        <span style={{
+                                            fontSize: '12px',
+                                            color: '#94a3b8',
+                                        }}>
+                                            {formatDate(score.createdAt)}
+                                        </span>
                                     </td>
                                 </tr>
                             ))}
@@ -404,14 +531,24 @@ const Scoreboard = ({ onClose }) => {
 
                 {/* Footer */}
                 <div style={{
-                    padding: '16px 32px',
+                    padding: '14px 32px',
                     borderTop: '1px solid #e2e8f0',
                     background: '#f8fafc',
-                    fontSize: '12px',
+                    fontSize: '13px',
                     color: '#64748b',
-                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                 }}>
-                    Total {filteredScores.length} {filteredScores.length === 1 ? 'game' : 'games'} displayed
+                    <span>
+                        <span style={{ fontWeight: '600', color: '#6366f1' }}>
+                            {filteredScores.length}
+                        </span> {filteredScores.length === 1 ? 'round' : 'rounds'} displayed
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ color: '#10b981' }}>🏆</span>
+                        {stats?.totalWins || 0} total wins
+                    </span>
                 </div>
             </div>
         </div>
@@ -422,38 +559,51 @@ const Scoreboard = ({ onClose }) => {
 const StatCard = ({ title, value, icon, color }) => (
     <div style={{
         background: 'white',
-        padding: '16px',
+        padding: '18px 20px',
         borderRadius: '12px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
-    }}>
+        gap: '14px',
+        border: '1px solid #f1f5f9',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+    }}
+         onMouseEnter={(e) => {
+             e.currentTarget.style.transform = 'translateY(-2px)';
+             e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.08)';
+         }}
+         onMouseLeave={(e) => {
+             e.currentTarget.style.transform = 'translateY(0)';
+             e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+         }}>
         <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '10px',
+            width: '52px',
+            height: '52px',
+            borderRadius: '12px',
             background: `${color}15`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '24px',
+            fontSize: '26px',
         }}>
             {icon}
         </div>
-        <div>
+        <div style={{ flex: 1 }}>
             <div style={{
-                fontSize: '12px',
+                fontSize: '13px',
                 fontWeight: '600',
                 color: '#64748b',
                 marginBottom: '4px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px',
             }}>
                 {title}
             </div>
             <div style={{
-                fontSize: '24px',
+                fontSize: '26px',
                 fontWeight: '700',
                 color: '#1e293b',
+                lineHeight: '1.2',
             }}>
                 {value}
             </div>
@@ -463,17 +613,18 @@ const StatCard = ({ title, value, icon, color }) => (
 
 // Styles
 const thStyle = {
-    padding: '16px',
+    padding: '16px 12px',
     textAlign: 'left',
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: '600',
     color: '#64748b',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+    whiteSpace: 'nowrap',
 };
 
 const tdStyle = {
-    padding: '16px',
+    padding: '14px 12px',
     fontSize: '14px',
     color: '#475569',
 };
