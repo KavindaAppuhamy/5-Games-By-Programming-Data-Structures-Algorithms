@@ -2,7 +2,6 @@ package com.pdsagame.backend.SnakeLadderGame.controller;
 
 import com.pdsagame.backend.SnakeLadderGame.dto.GameDtos.*;
 import com.pdsagame.backend.SnakeLadderGame.dto.RoundSummaryDto;
-import com.pdsagame.backend.SnakeLadderGame.model.PlayerResult;
 import com.pdsagame.backend.SnakeLadderGame.repository.PlayerResultRepository;
 import com.pdsagame.backend.SnakeLadderGame.service.SnakeLadderGameService;
 import jakarta.validation.Valid;
@@ -13,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/snake")
