@@ -29,6 +29,7 @@ const Analytics = ({ onClose, playerName }) => {
     const [viewMode, setViewMode] = useState('individual');
     const [selectedPlayer, setSelectedPlayer] = useState(playerName || '');
     const [error, setError] = useState(null);
+    const [hasSearched, setHasSearched] = useState(false);
     const [activeChartRefs] = useState({
         timeComparison: React.createRef(),
         timeTrend: React.createRef(),
@@ -37,21 +38,28 @@ const Analytics = ({ onClose, playerName }) => {
     });
 
     useEffect(() => {
-        fetchAnalytics();
-    }, [viewMode, selectedPlayer]);
+        // Don't auto-fetch on mount - wait for user to search
+        setAnalyticsData(null);
+        setLoading(false);
+        setHasSearched(false);
+    }, []);
 
     const fetchAnalytics = async () => {
+        // Don't fetch if no player name in individual mode
+        if (viewMode === 'individual' && (!selectedPlayer || selectedPlayer.trim() === '')) {
+            setError('Please enter a player name');
+            setAnalyticsData(null);
+            setHasSearched(true);
+            return;
+        }
+
         setLoading(true);
         setError(null);
+        setHasSearched(true);
 
         try {
             let endpoint;
             if (viewMode === 'individual') {
-                if (!selectedPlayer || selectedPlayer.trim() === '') {
-                    setAnalyticsData(null);
-                    setLoading(false);
-                    return;
-                }
                 endpoint = `http://localhost:8080/api/analytics/player/${encodeURIComponent(selectedPlayer.trim())}`;
             } else {
                 endpoint = 'http://localhost:8080/api/analytics/all-players';
@@ -62,7 +70,9 @@ const Analytics = ({ onClose, playerName }) => {
             if (!response.ok) {
                 if (response.status === 404) {
                     setAnalyticsData(null);
-                    setError(`No records found for player "${selectedPlayer}"`);
+                    setError(viewMode === 'individual'
+                        ? `No records found for player "${selectedPlayer}"`
+                        : 'No player records found in the system');
                 } else {
                     const errorData = await response.json();
                     setError(errorData.message || 'Failed to fetch analytics');
@@ -74,97 +84,64 @@ const Analytics = ({ onClose, playerName }) => {
 
             const data = await response.json();
 
-            // If no data, generate sample data for demonstration
+            // Check if data is empty
             if (!data || !data.roundsData || data.roundsData.length === 0) {
-                const sampleData = generateSampleTimeData();
-                setAnalyticsData(sampleData);
-            } else {
-                // Ensure all numeric values are properly parsed
-                const processedData = {
-                    ...data,
-                    roundsData: data.roundsData.map(round => ({
-                        ...round,
-                        time: Number(round.time) || 0,
-                        score: Number(round.score) || 0
-                    })),
-                    summary: {
-                        totalRounds: Number(data.summary?.totalRounds) || data.roundsData.length || 0,
-                        totalTime: Number(data.summary?.totalTime) || 0,
-                        avgTime: Number(data.summary?.avgTime) || 0,
-                        wins: Number(data.summary?.wins) || 0
-                    }
-                };
-
-                // Recalculate if values are invalid
-                if (isNaN(processedData.summary.totalTime) || processedData.summary.totalTime === 0) {
-                    processedData.summary.totalTime = processedData.roundsData.reduce((sum, r) => sum + (Number(r.time) || 0), 0);
-                }
-                if (isNaN(processedData.summary.avgTime) || processedData.summary.avgTime === 0) {
-                    processedData.summary.avgTime = processedData.roundsData.length > 0
-                        ? Math.round(processedData.summary.totalTime / processedData.roundsData.length)
-                        : 0;
-                }
-                if (isNaN(processedData.summary.wins) || processedData.summary.wins === 0) {
-                    processedData.summary.wins = processedData.roundsData.filter(r => r.correct).length;
-                }
-
-                setAnalyticsData(processedData);
+                setAnalyticsData(null);
+                setError(viewMode === 'individual'
+                    ? `Player "${selectedPlayer}" hasn't played any games yet.`
+                    : 'No games have been played yet.');
+                setLoading(false);
+                return;
             }
+
+            // Process the real data
+            const processedData = {
+                ...data,
+                roundsData: data.roundsData.map(round => ({
+                    ...round,
+                    time: Number(round.time) || 0,
+                    score: Number(round.score) || 0
+                })),
+                summary: {
+                    totalRounds: Number(data.summary?.totalRounds) || data.roundsData.length || 0,
+                    totalTime: Number(data.summary?.totalTime) || 0,
+                    avgTime: Number(data.summary?.avgTime) || 0,
+                    wins: Number(data.summary?.wins) || 0
+                }
+            };
+
+            // Recalculate if values are invalid
+            if (isNaN(processedData.summary.totalTime) || processedData.summary.totalTime === 0) {
+                processedData.summary.totalTime = processedData.roundsData.reduce((sum, r) => sum + (Number(r.time) || 0), 0);
+            }
+            if (isNaN(processedData.summary.avgTime) || processedData.summary.avgTime === 0) {
+                processedData.summary.avgTime = processedData.roundsData.length > 0
+                    ? Math.round(processedData.summary.totalTime / processedData.roundsData.length)
+                    : 0;
+            }
+            if (isNaN(processedData.summary.wins) || processedData.summary.wins === 0) {
+                processedData.summary.wins = processedData.roundsData.filter(r => r.correct).length;
+            }
+
+            setAnalyticsData(processedData);
             setError(null);
         } catch (error) {
             console.error('Failed to fetch analytics:', error);
-            // Generate sample data for demonstration
-            const sampleData = generateSampleTimeData();
-            setAnalyticsData(sampleData);
+            setError('Network error. Please check your connection and try again.');
+            setAnalyticsData(null);
         } finally {
             setLoading(false);
         }
     };
 
-    const generateSampleTimeData = () => {
-        const algorithms = ['EDMONDS_KARP', 'DINIC', 'BOTH'];
-        const roundsData = [];
-
-        for (let i = 1; i <= 20; i++) {
-            const algorithm = algorithms[Math.floor(Math.random() * algorithms.length)];
-            const baseTime = algorithm === 'EDMONDS_KARP' ? 150 :
-                algorithm === 'DINIC' ? 120 : 200;
-
-            roundsData.push({
-                round: i,
-                algorithm: algorithm,
-                time: Math.round(baseTime + Math.random() * 100 - 50),
-                score: Math.floor(Math.random() * 4) + 7,
-                correct: Math.random() > 0.3,
-                timestamp: new Date(Date.now() - (20 - i) * 60000).toISOString()
-            });
-        }
-
-        // Ensure all time values are valid numbers
-        const validRoundsData = roundsData.map(round => ({
-            ...round,
-            time: Number(round.time) || 0,
-            score: Number(round.score) || 0
-        }));
-
-        const totalTime = validRoundsData.reduce((sum, r) => sum + (Number(r.time) || 0), 0);
-        const avgTime = validRoundsData.length > 0 ? Math.round(totalTime / validRoundsData.length) : 0;
-
-        return {
-            roundsData: validRoundsData,
-            summary: {
-                totalRounds: validRoundsData.length,
-                totalTime: totalTime,
-                avgTime: avgTime,
-                wins: validRoundsData.filter(r => r.correct).length
-            }
-        };
-    };
-
     const handlePlayerSearch = () => {
-        if (selectedPlayer && selectedPlayer.trim()) {
-            fetchAnalytics();
+        if (viewMode === 'individual' && (!selectedPlayer || !selectedPlayer.trim())) {
+            setError('Please enter a player name');
+            setAnalyticsData(null);
+            setHasSearched(true);
+            return;
         }
+        fetchAnalytics();
     };
 
     const handleExportChart = (chartRef, chartName) => {
@@ -291,8 +268,9 @@ const Analytics = ({ onClose, playerName }) => {
         });
 
         // Prepare data for all rounds
+        const maxRound = Math.max(...analyticsData.roundsData.map(r => r.round));
         const trendData = [];
-        for (let i = 1; i <= 20; i++) {
+        for (let i = 1; i <= maxRound; i++) {
             const roundData = { round: i };
             Object.keys(algorithmGroups).forEach(algo => {
                 const algoRound = algorithmGroups[algo].find(r => r.round === i);
@@ -794,33 +772,35 @@ const Analytics = ({ onClose, playerName }) => {
                     }} />
                     {title}
                 </h3>
-                <button
-                    onClick={() => handleExportChart(chartRef, chartType)}
-                    style={{
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid #e2e8f0',
-                        background: 'white',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        color: '#64748b',
-                        transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#f8fafc';
-                        e.currentTarget.style.borderColor = '#cbd5e1';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'white';
-                        e.currentTarget.style.borderColor = '#e2e8f0';
-                    }}
-                >
-                    <span>⬇️</span> Export
-                </button>
+                {analyticsData && (
+                    <button
+                        onClick={() => handleExportChart(chartRef, chartType)}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #e2e8f0',
+                            background: 'white',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: '#64748b',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#f8fafc';
+                            e.currentTarget.style.borderColor = '#cbd5e1';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'white';
+                            e.currentTarget.style.borderColor = '#e2e8f0';
+                        }}
+                    >
+                        <span>⬇️</span> Export
+                    </button>
+                )}
             </div>
             {children}
         </div>
@@ -867,7 +847,7 @@ const Analytics = ({ onClose, playerName }) => {
                                 Algorithm Performance Analytics
                             </h2>
                             <p style={{ margin: '4px 0 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '13px' }}>
-                                20 Game Rounds Analysis
+                                Analyze algorithm execution times and performance
                             </p>
                         </div>
                     </div>
@@ -908,7 +888,11 @@ const Analytics = ({ onClose, playerName }) => {
                         onChange={(e) => {
                             setViewMode(e.target.value);
                             setError(null);
-                            if (e.target.value === 'all') setSelectedPlayer('');
+                            setAnalyticsData(null);
+                            setHasSearched(false);
+                            if (e.target.value === 'all') {
+                                setSelectedPlayer('');
+                            }
                         }}
                         style={{
                             padding: '8px 32px 8px 12px',
@@ -930,7 +914,11 @@ const Analytics = ({ onClose, playerName }) => {
                                 type="text"
                                 placeholder="Enter player name"
                                 value={selectedPlayer}
-                                onChange={(e) => setSelectedPlayer(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedPlayer(e.target.value);
+                                    setAnalyticsData(null);
+                                    setHasSearched(false);
+                                }}
                                 onKeyPress={(e) => e.key === 'Enter' && handlePlayerSearch()}
                                 style={{
                                     padding: '8px 12px',
@@ -962,24 +950,25 @@ const Analytics = ({ onClose, playerName }) => {
                         </>
                     )}
 
-                    <button
-                        onClick={fetchAnalytics}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            border: '1px solid #e2e8f0',
-                            background: 'white',
-                            fontSize: '13px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            color: '#64748b',
-                            marginLeft: 'auto',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; }}
-                    >
-                        🔄 Refresh
-                    </button>
+                    {viewMode === 'all' && (
+                        <button
+                            onClick={fetchAnalytics}
+                            style={{
+                                padding: '8px 20px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: '#667eea',
+                                fontSize: '13px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                color: 'white',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#5a67d8'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#667eea'}
+                        >
+                            Load All Players
+                        </button>
+                    )}
                 </div>
 
                 {/* Content */}
@@ -1009,17 +998,17 @@ const Analytics = ({ onClose, playerName }) => {
                                 <div style={{ fontSize: '14px', color: '#64748b' }}>Loading analytics data...</div>
                             </div>
                         </div>
-                    ) : error ? (
+                    ) : error && hasSearched ? (
                         <EmptyState message="No Data Available" icon="🔍" subMessage={error} />
-                    ) : !analyticsData ? (
+                    ) : !analyticsData && !hasSearched ? (
                         <EmptyState
-                            message="No Records Found"
+                            message="Search for Player Analytics"
                             icon="📊"
-                            subMessage={viewMode === 'individual' ?
-                                `Player "${selectedPlayer}" hasn't played any games yet.` :
-                                'No players have played games yet.'}
+                            subMessage={viewMode === 'individual'
+                                ? "Enter a player name and click 'Analyze' to view their performance data."
+                                : "Click 'Load All Players' to view analytics for all players."}
                         />
-                    ) : (
+                    ) : analyticsData ? (
                         <>
                             {renderSummaryStats()}
 
@@ -1068,7 +1057,7 @@ const Analytics = ({ onClose, playerName }) => {
                                 </ChartCard>
                             </div>
                         </>
-                    )}
+                    ) : null}
                 </div>
 
                 {/* Footer */}
@@ -1082,7 +1071,11 @@ const Analytics = ({ onClose, playerName }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                 }}>
-                    <span>📊 Showing data for {analyticsData?.summary?.totalRounds || 0} game rounds</span>
+                    <span>
+                        {analyticsData
+                            ? `📊 Showing data for ${analyticsData.summary?.totalRounds || 0} game rounds`
+                            : '📊 Enter player name to view analytics'}
+                    </span>
                     <span>💡 Hover over charts for detailed information</span>
                 </div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -124,6 +124,308 @@ const Toast = ({ type, message, correctAnswer, onClose }) => {
     );
 };
 
+// Confirmation Dialog Component
+const ConfirmationDialog = ({ title, message, onConfirm, onCancel }) => {
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            animation: 'fadeIn 0.2s ease-out',
+        }}>
+            <div style={{
+                background: 'white',
+                borderRadius: '20px',
+                padding: '28px',
+                maxWidth: '400px',
+                width: '90%',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                animation: 'slideUp 0.3s ease-out',
+            }}>
+                <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#1e293b',
+                    marginBottom: '12px',
+                }}>
+                    {title}
+                </h3>
+                <p style={{
+                    fontSize: '14px',
+                    color: '#64748b',
+                    marginBottom: '24px',
+                    lineHeight: '1.5',
+                }}>
+                    {message}
+                </p>
+                <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    justifyContent: 'flex-end',
+                }}>
+                    <button
+                        onClick={onCancel}
+                        style={{
+                            padding: '10px 20px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#64748b',
+                            background: '#f1f5f9',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#e2e8f0';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#f1f5f9';
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        style={{
+                            padding: '10px 20px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: 'white',
+                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                        }}
+                    >
+                        Confirm
+                    </button>
+                </div>
+            </div>
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
+        </div>
+    );
+};
+
+// Algorithm Hint Component
+const AlgorithmHint = ({ algorithm, onClose }) => {
+    const hints = {
+        'EDMONDS_KARP': {
+            title: '🚀 Edmonds-Karp Algorithm',
+            description: 'Uses BFS to find augmenting paths',
+            steps: [
+                '1. Start with zero flow in all edges',
+                '2. Use BFS to find the shortest augmenting path from source to sink',
+                '3. The path with minimum residual capacity becomes the bottleneck',
+                '4. Add bottleneck flow to all edges in the path',
+                '5. Update residual capacities (forward edges decrease, backward edges increase)',
+                '6. Repeat until no more augmenting paths exist',
+                '💡 Tip: Look for paths with the fewest edges first!'
+            ],
+            complexity: 'O(V × E²)',
+            color: '#6366f1'
+        },
+        'DINIC': {
+            title: '⚡ Dinic\'s Algorithm',
+            description: 'Uses level graphs and blocking flows',
+            steps: [
+                '1. Build a level graph using BFS (assign distances from source)',
+                '2. Only allow edges that go to the next level (distance + 1)',
+                '3. Use DFS to find blocking flows in the level graph',
+                '4. A blocking flow saturates at least one edge in every path',
+                '5. Rebuild level graph with updated residual capacities',
+                '6. Repeat until sink is unreachable from source',
+                '💡 Tip: Multiple paths can be found in one phase - look for combinations!'
+            ],
+            complexity: 'O(V² × E)',
+            color: '#10b981'
+        },
+        'BOTH': {
+            title: '🔄 Comparing Both Algorithms',
+            description: 'Two different approaches to the same problem',
+            steps: [
+                'Edmonds-Karp:',
+                '• Finds one augmenting path at a time using BFS',
+                '• Simpler to understand and implement',
+                '• Good for sparse graphs',
+                '',
+                'Dinic\'s Algorithm:',
+                '• Uses level graphs to find multiple paths simultaneously',
+                '• Generally faster for dense graphs',
+                '• More complex but more efficient',
+                '',
+                '💡 Tip: For this graph size, both should give the same max flow value!'
+            ],
+            complexity: 'EK: O(V×E²) | Dinic: O(V²×E)',
+            color: 'linear-gradient(135deg, #6366f1 0%, #10b981 100%)'
+        }
+    };
+
+    const hint = hints[algorithm];
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 10000,
+            animation: 'fadeIn 0.3s ease-out',
+        }}>
+            <div style={{
+                background: 'white',
+                borderRadius: '20px',
+                padding: '28px',
+                maxWidth: '500px',
+                maxHeight: '80vh',
+                overflow: 'auto',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                position: 'relative',
+            }}>
+                <button
+                    onClick={onClose}
+                    style={{
+                        position: 'absolute',
+                        top: '16px',
+                        right: '16px',
+                        background: 'transparent',
+                        border: 'none',
+                        fontSize: '20px',
+                        cursor: 'pointer',
+                        color: '#94a3b8',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#f1f5f9';
+                        e.currentTarget.style.color = '#1e293b';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#94a3b8';
+                    }}
+                >
+                    ✕
+                </button>
+
+                <div style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    marginBottom: '8px',
+                    background: hint.color,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                }}>
+                    {hint.title}
+                </div>
+
+                <p style={{
+                    color: '#64748b',
+                    fontSize: '14px',
+                    marginBottom: '20px',
+                }}>
+                    {hint.description}
+                </p>
+
+                <div style={{
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '16px',
+                }}>
+                    <div style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b',
+                        marginBottom: '12px',
+                    }}>
+                        How it works:
+                    </div>
+                    {hint.steps.map((step, index) => (
+                        <div key={index} style={{
+                            fontSize: '13px',
+                            color: '#475569',
+                            marginBottom: '8px',
+                            lineHeight: '1.5',
+                        }}>
+                            {step}
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                    borderRadius: '12px',
+                }}>
+                    <span style={{
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                    }}>
+                        Time Complexity:
+                    </span>
+                    <span style={{
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: '#1e293b',
+                        fontFamily: 'monospace',
+                    }}>
+                        {hint.complexity}
+                    </span>
+                </div>
+            </div>
+            <style>{`
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translate(-50%, -48%);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translate(-50%, -50%);
+                    }
+                }
+            `}</style>
+        </div>
+    );
+};
+
 export default function App() {
     const navigate = useNavigate();
     const [nodes] = useNodesState(nodesInit);
@@ -138,6 +440,13 @@ export default function App() {
     const [validationErrors, setValidationErrors] = useState({});
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [showAnalytics, setShowAnalytics] = useState(false);
+    const [showHint, setShowHint] = useState(false);
+    const [showStopDialog, setShowStopDialog] = useState(false);
+
+    // Timer states
+    const [timer, setTimer] = useState(0);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const timerRef = useRef(null);
 
     const [selectedAlgorithm, setSelectedAlgorithm] = useState('BOTH');
     const [playerStats, setPlayerStats] = useState(null);
@@ -149,8 +458,45 @@ export default function App() {
     const [checkingName, setCheckingName] = useState(false);
     const [nameChecked, setNameChecked] = useState(false);
 
-    // Remove the automatic check on every keystroke
-    // Only check when name is empty to reset state
+    // Timer functions
+    const startTimer = () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+        setIsTimerRunning(true);
+        timerRef.current = setInterval(() => {
+            setTimer(prev => prev + 1);
+        }, 1000);
+    };
+
+    const stopTimer = () => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+        setIsTimerRunning(false);
+    };
+
+    const resetTimer = () => {
+        stopTimer();
+        setTimer(0);
+    };
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, []);
+
     useEffect(() => {
         if (!name.trim()) {
             setPlayerExists(false);
@@ -175,7 +521,6 @@ export default function App() {
                 setTotalScore(data.totalScore || 0);
                 setPlayerExists(true);
 
-                // Check if player has completed all 20 rounds
                 if (data.roundsPlayed >= 20) {
                     setIsGameCompleted(true);
                     setValidationErrors(prev => ({
@@ -186,18 +531,15 @@ export default function App() {
                     setIsGameCompleted(false);
                 }
             } else if (response.status === 404) {
-                // Player doesn't exist yet
                 setPlayerExists(false);
                 setIsGameCompleted(false);
                 setCurrentRound(0);
                 setTotalScore(0);
                 setPlayerStats(null);
             }
-            // Always set nameChecked to true after checking
             setNameChecked(true);
         } catch (error) {
             console.error('Failed to check player status:', error);
-            // Still set nameChecked to true even on error to allow gameplay
             setNameChecked(true);
         } finally {
             setCheckingName(false);
@@ -215,7 +557,6 @@ export default function App() {
                 setTotalScore(data.totalScore || 0);
                 setPlayerExists(true);
 
-                // Check if player has completed all 20 rounds
                 if (data.roundsPlayed >= 20) {
                     setIsGameCompleted(true);
                 } else {
@@ -258,8 +599,19 @@ export default function App() {
         return Object.keys(errors).length === 0;
     };
 
+    const stopGame = () => {
+        stopTimer();
+        setGameStarted(false);
+        setRoundCompleted(false);
+        setEdges([]);
+        setAnswer(null);
+        setGuess('');
+        setValidationErrors({});
+        setShowStopDialog(false);
+        showToast('info', '⏸️ Game stopped. You can start a new round when ready.');
+    };
+
     const startGame = async () => {
-        // Check if player has already completed the game
         if (isGameCompleted) {
             showToast('error', `Player "${name.trim()}" has already completed all 20 rounds. Please use a different name to play again.`);
             return;
@@ -270,7 +622,6 @@ export default function App() {
             return;
         }
 
-        // Check if we need to verify the player first
         if (!nameChecked) {
             await checkPlayerStatus();
             if (isGameCompleted) {
@@ -327,6 +678,8 @@ export default function App() {
             setRoundCompleted(false);
             setValidationErrors({});
             setGuess('');
+            resetTimer();
+            startTimer();
 
             const algoNames = {
                 'EDMONDS_KARP': 'Edmonds-Karp',
@@ -354,6 +707,7 @@ export default function App() {
             return;
         }
 
+        stopTimer();
         setLoading(true);
         try {
             const res = await fetch("http://localhost:8080/api/game/submit", {
@@ -362,7 +716,8 @@ export default function App() {
                 body: JSON.stringify({
                     name: name.trim(),
                     guess: parseInt(guess),
-                    algorithm: selectedAlgorithm
+                    algorithm: selectedAlgorithm,
+                    timeSpent: timer
                 })
             });
 
@@ -390,10 +745,10 @@ export default function App() {
 
             let message = '';
             if (data.win) {
-                message = `Amazing, ${name}! Round ${data.roundNumber}/20 - You earned 10 points! Total score: ${data.totalScore}`;
+                message = `Amazing, ${name}! Round ${data.roundNumber}/20 - You earned 10 points! Total score: ${data.totalScore} (Time: ${formatTime(timer)})`;
                 showToast('win', message, data.correct);
             } else {
-                message = `Nice try, ${name}! Round ${data.roundNumber}/20 - Correct answer was ${data.correct}. Total score: ${data.totalScore}`;
+                message = `Nice try, ${name}! Round ${data.roundNumber}/20 - Correct answer was ${data.correct}. Total score: ${data.totalScore} (Time: ${formatTime(timer)})`;
                 showToast('lose', message, data.correct);
             }
 
@@ -414,11 +769,11 @@ export default function App() {
     };
 
     const backToGameMenu = () => {
+        stopTimer();
         navigate('/');
     };
 
     const resetAndNextRound = async () => {
-        // Check if player has already completed the game
         if (isGameCompleted || currentRound >= 20) {
             showToast('error', 'You have already completed all 20 rounds! Cannot start more rounds.');
             return;
@@ -426,7 +781,6 @@ export default function App() {
 
         setLoading(true);
 
-        // Clear current game state but KEEP the algorithm selection
         setEdges([]);
         setAnswer(null);
         setGameStarted(false);
@@ -441,7 +795,6 @@ export default function App() {
             return;
         }
 
-        // Automatically start next round with the SAME algorithm
         try {
             const res = await fetch(`http://localhost:8080/api/game/start?algorithm=${selectedAlgorithm}`);
 
@@ -481,6 +834,8 @@ export default function App() {
 
             setEdges(e);
             setGameStarted(true);
+            resetTimer();
+            startTimer();
 
             const algoNames = {
                 'EDMONDS_KARP': 'Edmonds-Karp',
@@ -506,29 +861,25 @@ export default function App() {
         return colors[algo] || '#6366f1';
     };
 
-    // Handle name change - just update the name without checking
     const handleNameChange = (e) => {
         const newName = e.target.value;
         setName(newName);
-        setNameChecked(false); // Reset checked status when name changes
+        setNameChecked(false);
 
-        // Clear name validation error when typing
         if (validationErrors.name) {
             setValidationErrors(prev => ({ ...prev, name: '' }));
         }
     };
 
-    // Handle name blur - check player status when user finishes typing
     const handleNameBlur = async () => {
         if (name.trim()) {
             await checkPlayerStatus();
         }
     };
 
-    // Handle Enter key press in name field
     const handleNameKeyPress = async (e) => {
         if (e.key === 'Enter' && name.trim()) {
-            e.target.blur(); // Trigger blur event
+            e.target.blur();
             await checkPlayerStatus();
         }
     };
@@ -584,6 +935,22 @@ export default function App() {
                 />
             )}
 
+            {showHint && (
+                <AlgorithmHint
+                    algorithm={selectedAlgorithm}
+                    onClose={() => setShowHint(false)}
+                />
+            )}
+
+            {showStopDialog && (
+                <ConfirmationDialog
+                    title="Stop Current Game?"
+                    message="Are you sure you want to stop the current round? Your progress in this round will be lost, but you can start a new round anytime."
+                    onConfirm={stopGame}
+                    onCancel={() => setShowStopDialog(false)}
+                />
+            )}
+
             <div style={{
                 width: '70%',
                 margin: '12px',
@@ -636,6 +1003,66 @@ export default function App() {
                     display: 'flex',
                     gap: '8px',
                 }}>
+                    {/* Stop Game Button - Only visible when game is active */}
+                    {gameStarted && (
+                        <button
+                            onClick={() => setShowStopDialog(true)}
+                            style={{
+                                padding: '10px 16px',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                color: '#ef4444',
+                                background: 'white',
+                                border: '2px solid #ef4444',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#ef4444';
+                                e.currentTarget.style.color = 'white';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'white';
+                                e.currentTarget.style.color = '#ef4444';
+                            }}
+                        >
+                            <span>⏹️</span> Stop Game
+                        </button>
+                    )}
+
+                    <button
+                        onClick={() => setShowHint(true)}
+                        style={{
+                            padding: '10px 16px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            color: '#64748b',
+                            background: 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#f1f5f9';
+                            e.currentTarget.style.color = '#1e293b';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'white';
+                            e.currentTarget.style.color = '#64748b';
+                        }}
+                    >
+                        <span>💡</span> Hint
+                    </button>
                     <button
                         onClick={() => setShowScoreboard(true)}
                         style={{
@@ -718,6 +1145,37 @@ export default function App() {
                         maskColor="rgba(102, 126, 234, 0.1)"
                     />
                 </ReactFlow>
+
+                {/* Timer Display */}
+                {gameStarted && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '16px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        zIndex: 10,
+                        padding: '12px 24px',
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: '40px',
+                        backdropFilter: 'blur(10px)',
+                        color: 'white',
+                        fontSize: '24px',
+                        fontWeight: '700',
+                        fontFamily: 'monospace',
+                        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                    }}>
+                        <span>⏱️</span>
+                        <span style={{
+                            color: timer > 120 ? '#fbbf24' : '#10b981',
+                            transition: 'color 0.3s',
+                        }}>
+                            {formatTime(timer)}
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div style={{
@@ -967,7 +1425,7 @@ export default function App() {
                         </div>
                     </div>
 
-                    {/* Start Button - Shows when game is NOT started AND round is NOT completed */}
+                    {/* Start Button */}
                     {!gameStarted && !roundCompleted && (
                         <button
                             onClick={startGame}
@@ -1010,7 +1468,7 @@ export default function App() {
                         </button>
                     )}
 
-                    {/* Next Round Button - Shows when round is completed */}
+                    {/* Next Round Button */}
                     {roundCompleted && currentRound < 20 && !isGameCompleted && (
                         <button
                             onClick={resetAndNextRound}
