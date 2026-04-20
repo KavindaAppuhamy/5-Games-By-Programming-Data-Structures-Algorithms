@@ -104,14 +104,18 @@ export default function MinCostHistory({ playerName, onClose, initialMode = 'my'
   };
 
   const runtimeLineData = useMemo(() => {
-    const rounds = history
-      .filter((r) => r.algorithm === 'hungarian' || r.algorithm === 'greedy')
-      .slice(0, 20);
+    const rounds = history.slice(0, 20);
 
     return rounds.map((round, idx) => ({
       round: idx + 1,
-      hungarian: round.algorithm === 'hungarian' ? round.runtimeMs : null,
-      greedy: round.algorithm === 'greedy' ? round.runtimeMs : null,
+      hungarian:
+        round.algorithm === "hungarian" || round.algorithm === "both"
+          ? round.runtimeMs
+          : null,
+      greedy:
+        round.algorithm === "greedy" || round.algorithm === "both"
+          ? round.runtimeMs
+          : null,
     }));
   }, [history]);
 
