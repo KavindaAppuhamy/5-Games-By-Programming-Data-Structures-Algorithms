@@ -276,6 +276,14 @@ function SciFiBackground() {
 export default function GameMenu() {
   const navigate = useNavigate();
 
+    const games = [
+    { name: "Minimum Cost Assignment", path: "/min-cost", color: "from-purple-500 to-pink-500" },
+    { name: "Snake & Ladder", path: "/snake-ladder", color: "from-green-400 to-emerald-600" },
+    { name: "Traffic Simulation", path: "/traffic", color: "from-yellow-400 to-orange-500" },
+    { name: "Knight's Tour", path: "/knight-tour", color: "from-blue-500 to-cyan-500" },
+    { name: "Sixteen Queens", path: "/sixteen-queens", color: "from-red-500 to-rose-600" },
+    ];
+
   return (
     <div className="relative min-h-screen text-white flex flex-col items-center justify-center p-16 overflow-hidden"
       style={{ fontFamily: "'Courier New', monospace" }}>
@@ -297,7 +305,7 @@ export default function GameMenu() {
 
         {/* Title block */}
         <div className="mb-12 text-center">
-          
+
           <h1 className="text-6xl font-black tracking-tight mb-2" style={{
             background: "linear-gradient(135deg, #a5b4fc 0%, #818cf8 40%, #e879f9 100%)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
