@@ -21,6 +21,12 @@ import java.util.PriorityQueue;
  * Both algorithms produce the same minimum result; the purpose is
  * benchmarking and educational comparison.
  */
+/**
+ * Find minimum dice throws using Dijkstra's algorithm.
+ * Each dice throw has a uniform weight of 1.
+ * @return Result containing minThrows and execution time in nanoseconds
+ */
+
 @Component
 public class DijkstraAlgorithm {
 
@@ -29,15 +35,6 @@ public class DijkstraAlgorithm {
      */
     public record Result(int minThrows, long timeNs) {}
 
-    /**
-     * Find minimum dice throws using Dijkstra's algorithm.
-     * Each dice throw has a uniform weight of 1.
-     *
-     * @param totalCells Total number of cells (N*N)
-     * @param snakes     Map of snake mouth -> tail positions
-     * @param ladders    Map of ladder base -> top positions
-     * @return Result containing minThrows and execution time in nanoseconds
-     */
     public Result findMinThrows(int totalCells, Map<Integer, Integer> snakes, Map<Integer, Integer> ladders) {
         long startTime = System.nanoTime();
 

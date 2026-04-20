@@ -1,5 +1,7 @@
 package com.pdsagame.backend.service;
 
+import com.pdsagame.backend.SnakeLadderGame.algorithm.BfsAlgorithm;
+import com.pdsagame.backend.SnakeLadderGame.algorithm.DijkstraAlgorithm;
 import com.pdsagame.backend.SnakeLadderGame.dto.GameDtos.*;
 import com.pdsagame.backend.SnakeLadderGame.exception.GameRoundNotFoundException;
 import com.pdsagame.backend.SnakeLadderGame.exception.InvalidBoardConfigException;
@@ -17,7 +19,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +32,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SnakeLadderGameService Tests")
-class SnakeLadderTrafficGameServiceTest {
+class SnakeLadderGameServiceTest {
 
     @Mock private BoardGeneratorService boardGeneratorService;
     @Mock private BfsAlgorithm bfsAlgorithm;
@@ -59,7 +62,7 @@ class SnakeLadderTrafficGameServiceTest {
             .dijkstraTimeNs(80000L)
             .snakesConfig("15:4,30:10")
             .laddersConfig("3:18,8:25")
-            .createdAt(LocalDateTime.now())
+            .createdAt(OffsetDateTime.now(ZoneOffset.UTC))
             .build();
     }
 
