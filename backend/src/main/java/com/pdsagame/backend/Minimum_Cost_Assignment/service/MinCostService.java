@@ -92,7 +92,8 @@ public class MinCostService {
                 round.setAssignments(jsonMapper.writeValueAsString(hres.assignments));
                 round.setComparisonResults(jsonMapper.writeValueAsString(comp));
 
-                System.out.println("DEBUG: Persisting round: id=" + round.getId() + " playerName='" + round.getPlayerName() + "' n=" + n + " algorithm=both totalCost=" + hres.totalCost + " runtimeMs=" + hMs);
+                System.out.println("DEBUG: Persisting round: id=" + round.getId() + " playerName='" + round.getPlayerName() +
+                        "' n=" + n + " algorithm=both totalCost=" + hres.totalCost + " runtimeMs=" + hMs);
 
                 repository.save(round);
                 dto.setRoundId(round.getId());

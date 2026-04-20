@@ -202,9 +202,10 @@ describe('mincost API client', () => {
 
     it('should throw error on non-ok response', async () => {
       globalThis.fetch = vi.fn(() =>
-          Promise.resolve({
-            ok: false,
-          })
+        Promise.resolve({
+          ok: false,
+          text: () => Promise.resolve("Failed to fetch history"),
+        }),
       );
 
       await expect(fetchHistory()).rejects.toThrow('Failed to fetch history');
