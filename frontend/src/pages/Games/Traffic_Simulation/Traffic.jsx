@@ -167,7 +167,7 @@ export default function App() {
     const startGame = async () => {
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8081/api/traffic/start");
+            const res = await fetch("http://localhost:8080/api/traffic/start");
 
             if (!res.ok) {
                 const errorData = await res.json();
@@ -223,7 +223,7 @@ export default function App() {
 
         setLoading(true);
         try {
-            const res = await fetch("http://localhost:8081/api/traffic/submit", {
+            const res = await fetch("http://localhost:8080/api/traffic/submit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: name.trim(), guess: parseInt(guess) })
