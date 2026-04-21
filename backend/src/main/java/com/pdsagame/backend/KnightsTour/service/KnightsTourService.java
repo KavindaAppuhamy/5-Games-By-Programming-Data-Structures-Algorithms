@@ -13,11 +13,6 @@ public class KnightsTourService {
     @Autowired
     private GameRepository gameRepository;
 
-    private int boardSize;
-    private int[][] board;
-    private List<String> solution;
-
-    // Knight move offsets
     private static final int[] MOVE_ROW = {2, 1, -1, -2, -2, -1, 1, 2};
     private static final int[] MOVE_COL = {1, 2, 2, 1, -1, -2, -2, -1};
 
@@ -26,22 +21,21 @@ public class KnightsTourService {
     public List<String> solveWithWarnsdorff(int size, String startPos) {
         long startTime = System.nanoTime();
 
-        boardSize = size;
-        board = new int[boardSize][boardSize];
-        solution = new ArrayList<>();
+        int boardSize = size;
+        int[][] board = new int[boardSize][boardSize];
+        List<String> solution = new ArrayList<>();
 
         KnightMove start = KnightMove.fromChessNotation(startPos, boardSize);
-        boolean success = warnsdorffTour(start.getRow(), start.getCol(), 1);
+        boolean success = warnsdorffTour(start.getRow(), start.getCol(), 1, boardSize, board, solution);
 
-        long endTime = System.nanoTime();
-        long timeTakenMs = (endTime - startTime) / 1_000_000;
-
+        long timeTakenMs = (System.nanoTime() - startTime) / 1_000_000;
         System.out.println("⚡ Warnsdorff completed in " + timeTakenMs + "ms, Success: " + success);
 
         return success ? solution : null;
     }
 
-    private boolean warnsdorffTour(int row, int col, int moveCount) {
+    private boolean warnsdorffTour(int row, int col, int moveCount,
+                                   int boardSize, int[][] board, List<String> solution) {
         board[row][col] = moveCount;
         solution.add(new KnightMove(row, col).toChessNotation(boardSize));
 
@@ -49,37 +43,36 @@ public class KnightsTourService {
             return true;
         }
 
-        List<MoveWithDegree> nextMoves = getNextMovesWithDegree(row, col);
+        List<MoveWithDegree> nextMoves = getNextMovesWithDegree(row, col, boardSize, board);
         nextMoves.sort(Comparator.comparingInt(m -> m.degree));
 
         for (MoveWithDegree next : nextMoves) {
-            if (warnsdorffTour(next.row, next.col, moveCount + 1)) {
+            if (warnsdorffTour(next.row, next.col, moveCount + 1, boardSize, board, solution)) {
                 return true;
             }
         }
 
+        // Backtrack
         board[row][col] = 0;
         solution.remove(solution.size() - 1);
         return false;
     }
 
-    private List<MoveWithDegree> getNextMovesWithDegree(int row, int col) {
+    private List<MoveWithDegree> getNextMovesWithDegree(int row, int col, int boardSize, int[][] board) {
         List<MoveWithDegree> moves = new ArrayList<>();
-
         for (int i = 0; i < 8; i++) {
             int newRow = row + MOVE_ROW[i];
             int newCol = col + MOVE_COL[i];
-
             KnightMove move = new KnightMove(newRow, newCol);
             if (move.isValid(boardSize) && board[newRow][newCol] == 0) {
-                int degree = countOnwardMoves(newRow, newCol);
+                int degree = countOnwardMoves(newRow, newCol, boardSize, board);
                 moves.add(new MoveWithDegree(newRow, newCol, degree));
             }
         }
         return moves;
     }
 
-    private int countOnwardMoves(int row, int col) {
+    private int countOnwardMoves(int row, int col, int boardSize, int[][] board) {
         int count = 0;
         for (int i = 0; i < 8; i++) {
             int newRow = row + MOVE_ROW[i];
@@ -106,25 +99,24 @@ public class KnightsTourService {
     public List<String> solveWithBacktracking(int size, String startPos) {
         long startTime = System.nanoTime();
 
-        boardSize = size;
-        board = new int[boardSize][boardSize];
-        solution = new ArrayList<>();
+        int boardSize = size;
+        int[][] board = new int[boardSize][boardSize];
+        List<String> solution = new ArrayList<>();
 
         KnightMove start = KnightMove.fromChessNotation(startPos, boardSize);
         board[start.getRow()][start.getCol()] = 1;
         solution.add(start.toChessNotation(boardSize));
 
-        boolean success = backtrackingTour(start.getRow(), start.getCol(), 2);
+        boolean success = backtrackingTour(start.getRow(), start.getCol(), 2, boardSize, board, solution);
 
-        long endTime = System.nanoTime();
-        long timeTakenMs = (endTime - startTime) / 1_000_000;
-
+        long timeTakenMs = (System.nanoTime() - startTime) / 1_000_000;
         System.out.println("🐢 Backtracking completed in " + timeTakenMs + "ms, Success: " + success);
 
         return success ? solution : null;
     }
 
-    private boolean backtrackingTour(int row, int col, int moveCount) {
+    private boolean backtrackingTour(int row, int col, int moveCount,
+                                     int boardSize, int[][] board, List<String> solution) {
         if (moveCount > boardSize * boardSize) {
             return true;
         }
@@ -138,7 +130,7 @@ public class KnightsTourService {
             board[newRow][newCol] = moveCount;
             solution.add(move.toChessNotation(boardSize));
 
-            if (backtrackingTour(newRow, newCol, moveCount + 1)) {
+            if (backtrackingTour(newRow, newCol, moveCount + 1, boardSize, board, solution)) {
                 return true;
             }
 
@@ -149,16 +141,15 @@ public class KnightsTourService {
         return false;
     }
 
-    //runcomparison
+    // ========== COMPARISON ==========
+
     public Map<String, Object> runComparison(int boardSize, String startPosition) {
         Map<String, Object> result = new HashMap<>();
 
-        System.out.println("\n🎮 Starting new Knight's Tour game round...");
-        System.out.println("Board Size: " + boardSize + "x" + boardSize);
-        System.out.println("Start Position: " + startPosition);
+        System.out.println("\n🎮 Starting Knight's Tour comparison...");
+        System.out.println("Board: " + boardSize + "x" + boardSize + " | Start: " + startPosition);
         System.out.println("----------------------------------------");
 
-        // Run Warnsdorff with time capture
         long warnStart = System.currentTimeMillis();
         List<String> warnsdorffSolution = null;
         try {
@@ -166,10 +157,8 @@ public class KnightsTourService {
         } catch (Exception e) {
             System.err.println("Warnsdorff error: " + e.getMessage());
         }
-        long warnEnd = System.currentTimeMillis();
-        long warnsdorffTime = warnEnd - warnStart;
+        long warnsdorffTime = System.currentTimeMillis() - warnStart;
 
-        // Run Backtracking with time capture
         long backStart = System.currentTimeMillis();
         List<String> backtrackingSolution = null;
         try {
@@ -177,17 +166,15 @@ public class KnightsTourService {
         } catch (Exception e) {
             System.err.println("Backtracking error: " + e.getMessage());
         }
-        long backEnd = System.currentTimeMillis();
-        long backtrackingTime = backEnd - backStart;
+        long backtrackingTime = System.currentTimeMillis() - backStart;
 
-        // Create response maps - ALWAYS include timeMs
         Map<String, Object> warnsdorffMap = new HashMap<>();
-        warnsdorffMap.put("solution", warnsdorffSolution);
+        warnsdorffMap.put("solution", warnsdorffSolution != null ? warnsdorffSolution : Collections.emptyList());
         warnsdorffMap.put("success", warnsdorffSolution != null);
         warnsdorffMap.put("timeMs", warnsdorffTime);
 
         Map<String, Object> backtrackingMap = new HashMap<>();
-        backtrackingMap.put("solution", backtrackingSolution);
+        backtrackingMap.put("solution", backtrackingSolution != null ? backtrackingSolution : Collections.emptyList());
         backtrackingMap.put("success", backtrackingSolution != null);
         backtrackingMap.put("timeMs", backtrackingTime);
 
@@ -196,8 +183,8 @@ public class KnightsTourService {
         result.put("warnsdorff", warnsdorffMap);
         result.put("backtracking", backtrackingMap);
 
-        System.out.println("✅ Warnsdorff: " + warnsdorffTime + "ms, Solution: " + (warnsdorffSolution != null));
-        System.out.println("✅ Backtracking: " + backtrackingTime + "ms, Solution: " + (backtrackingSolution != null));
+        System.out.println("✅ Warnsdorff: " + warnsdorffTime + "ms | Success: " + (warnsdorffSolution != null));
+        System.out.println("✅ Backtracking: " + backtrackingTime + "ms | Success: " + (backtrackingSolution != null));
         System.out.println("----------------------------------------");
 
         return result;
@@ -223,11 +210,11 @@ public class KnightsTourService {
             session.setBacktrackingTimeMs(backtrackingTimeMs);
 
             gameRepository.save(session);
-            System.out.println("✅ Game result saved to database for player: " + playerName);
-            System.out.println("   Warnsdorff time: " + warnsdorffTimeMs + "ms");
-            System.out.println("   Backtracking time: " + backtrackingTimeMs + "ms");
+            System.out.println("✅ Saved game for: " + playerName
+                    + " | Warnsdorff: " + warnsdorffTimeMs + "ms"
+                    + " | Backtracking: " + backtrackingTimeMs + "ms");
         } catch (Exception e) {
-            System.err.println("❌ Failed to save to database: " + e.getMessage());
+            System.err.println("❌ Failed to save: " + e.getMessage());
             e.printStackTrace();
         }
     }
