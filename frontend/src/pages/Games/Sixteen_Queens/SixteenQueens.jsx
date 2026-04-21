@@ -35,6 +35,7 @@ export default function SixteenQueens() {
                         <FiArrowLeft size={16} /> Back
                     </button>
 
+
                     <div className="flex items-center gap-3 ml-2">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/30">
                             <GiChessQueen size={22} />
