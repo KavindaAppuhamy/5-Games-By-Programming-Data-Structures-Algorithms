@@ -94,7 +94,7 @@ const KnightsTourGame = () => {
     console.log('💾 SAVING:', gameData);
     
     try {
-      await fetch('http://localhost:8083/api/knights-tour/save-result', {
+      await fetch('http://localhost:8080/api/knights-tour/save-result', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(gameData)

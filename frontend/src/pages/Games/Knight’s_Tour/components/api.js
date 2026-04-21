@@ -1,5 +1,5 @@
 // API service for Knight's Tour game
-const API_BASE_URL = 'http://localhost:8082/api/knights-tour';
+const API_BASE_URL = 'http://localhost:8080/api/knights-tour';
 
 export const knightsTourApi = {
   // Solve the knight's tour puzzle
