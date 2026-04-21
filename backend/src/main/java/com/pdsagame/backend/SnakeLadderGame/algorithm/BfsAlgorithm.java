@@ -18,6 +18,11 @@ import java.util.Queue;
  * We model each cell as a node; edges represent dice throws (1-6).
  * Snakes/ladders are treated as teleporters applied instantly.
  */
+/**
+ * Find minimum dice throws using Breadth-First Search.
+ * @return Result containing minThrows and execution time in nanoseconds
+ */
+
 @Component
 public class BfsAlgorithm {
 
@@ -26,14 +31,6 @@ public class BfsAlgorithm {
      */
     public record Result(int minThrows, long timeNs) {}
 
-    /**
-     * Find minimum dice throws using Breadth-First Search.
-     *
-     * @param totalCells Total number of cells (N*N)
-     * @param snakes     Map of snake mouth -> tail positions
-     * @param ladders    Map of ladder base -> top positions
-     * @return Result containing minThrows and execution time in nanoseconds
-     */
     public Result findMinThrows(int totalCells, Map<Integer, Integer> snakes, Map<Integer, Integer> ladders) {
         long startTime = System.nanoTime();
 

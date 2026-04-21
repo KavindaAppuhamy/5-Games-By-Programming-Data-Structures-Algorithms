@@ -195,13 +195,13 @@ export default function SetupScreen({ playerName, setPlayerName, boardSize, setB
               <span style={{ color: '#1e3a56', marginLeft: 8 }}>({boardSize * boardSize} cells)</span>
             </label>
             <div className="size-grid">
-              {sizes.map((s) => (
+              {sizes.map((n) => (   // ✅ changed s → n
                 <button
-                  key={s}
-                  className={`size-btn${boardSize === s ? ' active' : ''}`}
-                  onClick={() => setBoardSize(s)}
+                  key={n}
+                  className={`size-btn${boardSize === n ? ' active' : ''}`}
+                  onClick={() => setBoardSize(n)}
                 >
-                  {s}×{s}
+                  {n}×{n}
                 </button>
               ))}
             </div>

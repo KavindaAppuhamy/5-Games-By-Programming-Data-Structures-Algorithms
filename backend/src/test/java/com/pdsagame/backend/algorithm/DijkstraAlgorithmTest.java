@@ -1,5 +1,7 @@
 package com.pdsagame.backend.algorithm;
 
+import com.pdsagame.backend.SnakeLadderGame.algorithm.DijkstraAlgorithm;
+import com.pdsagame.backend.SnakeLadderGame.algorithm.BfsAlgorithm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
