@@ -1,4 +1,4 @@
-# 🎮 Project Title: Programming Data Structures and Algorithms Game System (Under Development)
+# Project Title: Programming Data Structures and Algorithms Game System
 
 ## 📌 Description
 
